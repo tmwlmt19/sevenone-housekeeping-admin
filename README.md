@@ -10,6 +10,9 @@ Part of a four-app system:
 - **sevenone-housekeeping-admin** — this app (platform admins)
 - **sevenone-housekeeping-service** — FastAPI + PostgreSQL/Neon backend
 
+**Status:** MVP built (hotels list, create hotel, hotel detail + staff
+onboarding, account). Whole-system status lives in the web repo's `docs/status.md`.
+
 ## Auth
 
 Cookie-based SSO. This app has no login screen: on load it calls `GET /auth/me`;
