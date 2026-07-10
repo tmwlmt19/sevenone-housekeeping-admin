@@ -3,6 +3,7 @@ export type Role = 'admin' | 'manager' | 'housekeeper'
 
 export interface AuthUser {
   id: string
-  hotelId: string
+  // Null for platform/service admins, who belong to no hotel.
+  hotelId: string | null
   role: Role
 }

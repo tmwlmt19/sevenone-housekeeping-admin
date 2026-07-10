@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return
       // This console is admin-only; a valid but non-admin session is rejected.
       if (data && data.role === 'admin') {
-        setUser({ id: data.id, hotelId: data.hotel_id, role: data.role })
+        setUser({ id: data.id, hotelId: data.hotel_id ?? null, role: data.role })
         setStatus('authed')
       } else {
         setStatus('unauthed')
