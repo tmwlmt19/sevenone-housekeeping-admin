@@ -8,7 +8,6 @@ export type HotelCreate = Schemas['HotelCreate']
 export type HotelUpdate = Schemas['HotelUpdate']
 
 export type Staff = Schemas['UserRead']
-export type StaffCreate = Schemas['UserCreate']
 export type StaffUpdate = Schemas['UserUpdate']
 export type UserRole = Schemas['UserRole']
 
@@ -36,3 +35,15 @@ export const ROOM_STATUS_LABELS: Record<RoomStatus, string> = {
 
 // Hotel-staff roles the admin can assign (admin is a platform role, not a hotel one).
 export const HOTEL_ROLES: UserRole[] = ['manager', 'housekeeper']
+
+// --- Access requests (manager → admin approval queue) ---
+export type AccessRequest = Schemas['AccessRequestRead']
+export type AccessRequestDecision = Schemas['AccessRequestDecision']
+export type RequestResource = Schemas['RequestResource']
+export type RequestKind = Schemas['RequestKind']
+export type RequestStatus = Schemas['RequestStatus']
+
+// The payload column is free-form jsonb in the schema; these are the concrete
+// shapes we store for each add request.
+export type StaffAddPayload = Schemas['StaffAddPayload']
+export type RoomAddPayload = Schemas['RoomAddPayload']

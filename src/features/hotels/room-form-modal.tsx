@@ -19,16 +19,13 @@ import {
 import {
   ROOM_STATUS_LABELS,
   ROOM_STATUSES,
-  type RoomCreate,
   type RoomUpdate,
 } from '@/lib/api/types'
 import { ApiError } from '@/lib/api/unwrap'
-import {
-  useCreateRoom,
-  useHotelRooms,
-  useUpdateRoom,
-} from '@/lib/queries/rooms'
+import { useHotelRooms, useUpdateRoom } from '@/lib/queries/rooms'
 
+// Editing an existing room is still an admin-direct action. Adding and removing
+// rooms go through the manager → admin Requests queue instead.
 const schema = z.object({
   room_number: z
     .string()
@@ -46,17 +43,14 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 export function RoomFormModal() {
-  const { hotelId = '', roomId } = useParams()
-  const isEdit = Boolean(roomId)
+  const { hotelId = '', roomId = '' } = useParams()
   const navigate = useNavigate()
   const backTo = `/hotels/${hotelId}`
 
   const { data: rooms } = useHotelRooms(hotelId)
-  const room = roomId ? rooms?.find((r) => r.id === roomId) : undefined
+  const room = rooms?.find((r) => r.id === roomId)
 
-  const createRoom = useCreateRoom(hotelId)
   const updateRoom = useUpdateRoom(hotelId)
-  const isPending = createRoom.isPending || updateRoom.isPending
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -79,7 +73,7 @@ export function RoomFormModal() {
     }
   }, [room, form])
 
-  if (isEdit && rooms && !room) {
+  if (rooms && !room) {
     return (
       <RouteModal title="Room not found" backTo={backTo}>
         <p className="text-muted-foreground text-sm">
@@ -90,38 +84,34 @@ export function RoomFormModal() {
   }
 
   function onSubmit(values: FormValues) {
-    const handlers = {
-      onSuccess: () => {
-        toast.success(isEdit ? 'Room updated' : 'Room added')
-        navigate(backTo)
-      },
-      onError: (e: unknown) => {
-        if (e instanceof ApiError && e.status === 409) {
-          form.setError('room_number', { message: e.message })
-        } else {
-          toast.error(
-            e instanceof ApiError ? e.message : 'Something went wrong',
-          )
-        }
-      },
-    }
-
-    const body: RoomCreate | RoomUpdate = {
+    const body: RoomUpdate = {
       room_number: values.room_number,
       floor: values.floor === '' ? null : Number(values.floor),
       room_type: values.room_type === '' ? null : values.room_type,
       status: values.status,
     }
-
-    if (isEdit && roomId) {
-      updateRoom.mutate({ roomId, body }, handlers)
-    } else {
-      createRoom.mutate(body as RoomCreate, handlers)
-    }
+    updateRoom.mutate(
+      { roomId, body },
+      {
+        onSuccess: () => {
+          toast.success('Room updated')
+          navigate(backTo)
+        },
+        onError: (e: unknown) => {
+          if (e instanceof ApiError && e.status === 409) {
+            form.setError('room_number', { message: e.message })
+          } else {
+            toast.error(
+              e instanceof ApiError ? e.message : 'Something went wrong',
+            )
+          }
+        },
+      },
+    )
   }
 
   return (
-    <RouteModal title={isEdit ? 'Edit room' : 'Add room'} backTo={backTo}>
+    <RouteModal title="Edit room" backTo={backTo}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-4"
@@ -184,8 +174,8 @@ export function RoomFormModal() {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? 'Saving…' : 'Save'}
+          <Button type="submit" disabled={updateRoom.isPending}>
+            {updateRoom.isPending ? 'Saving…' : 'Save'}
           </Button>
         </div>
       </form>

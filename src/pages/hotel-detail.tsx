@@ -1,12 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowLeft, Pencil } from 'lucide-react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, Outlet, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Field } from '@/components/form/field'
 import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -22,11 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ROOM_STATUS_LABELS, type Room, type Staff } from '@/lib/api/types'
+import { ROOM_STATUS_LABELS } from '@/lib/api/types'
 import { ApiError } from '@/lib/api/unwrap'
-import { useDeleteHotelUser, useHotelStaff } from '@/lib/queries/hotel-users'
+import { useHotelStaff } from '@/lib/queries/hotel-users'
 import { useHotel, useUpdateHotel } from '@/lib/queries/hotels'
-import { useDeleteRoom, useHotelRooms } from '@/lib/queries/rooms'
+import { useHotelRooms } from '@/lib/queries/rooms'
 
 const hotelSchema = z.object({
   name: z.string().trim().min(1, 'Required').max(255, 'Max 255 characters'),
@@ -44,11 +43,7 @@ export function HotelDetailPage() {
   const { data: hotel, isLoading } = useHotel(hotelId)
   const updateHotel = useUpdateHotel(hotelId)
   const { data: staff } = useHotelStaff(hotelId)
-  const deleteUser = useDeleteHotelUser(hotelId)
-  const [toDelete, setToDelete] = useState<Staff | null>(null)
   const { data: rooms } = useHotelRooms(hotelId)
-  const deleteRoom = useDeleteRoom(hotelId)
-  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null)
 
   const form = useForm<HotelForm>({
     resolver: zodResolver(hotelSchema),
@@ -71,30 +66,6 @@ export function HotelDetailPage() {
           toast.error(e instanceof ApiError ? e.message : 'Update failed'),
       },
     )
-  }
-
-  function handleDelete() {
-    if (!toDelete) return
-    deleteUser.mutate(toDelete.id, {
-      onSuccess: () => {
-        toast.success(`${toDelete.name} removed`)
-        setToDelete(null)
-      },
-      onError: (e) =>
-        toast.error(e instanceof ApiError ? e.message : 'Failed to remove'),
-    })
-  }
-
-  function handleDeleteRoom() {
-    if (!roomToDelete) return
-    deleteRoom.mutate(roomToDelete.id, {
-      onSuccess: () => {
-        toast.success(`Room ${roomToDelete.room_number} removed`)
-        setRoomToDelete(null)
-      },
-      onError: (e) =>
-        toast.error(e instanceof ApiError ? e.message : 'Failed to remove'),
-    })
   }
 
   return (
@@ -145,12 +116,9 @@ export function HotelDetailPage() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">Staff</h2>
-          <Button asChild size="sm">
-            <Link to={`/hotels/${hotelId}/staff/new`}>
-              <Plus className="size-4" />
-              Add staff
-            </Link>
-          </Button>
+          <span className="text-muted-foreground text-xs">
+            Adds &amp; removals come from managers via Requests
+          </span>
         </div>
         <div className="rounded-md border">
           <Table>
@@ -169,7 +137,7 @@ export function HotelDetailPage() {
                     colSpan={4}
                     className="text-muted-foreground py-8 text-center"
                   >
-                    No staff yet. Add the hotel's first manager.
+                    No staff yet.
                   </TableCell>
                 </TableRow>
               )}
@@ -191,14 +159,6 @@ export function HotelDetailPage() {
                         <Pencil className="size-4" />
                       </Link>
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Delete"
-                      onClick={() => setToDelete(member)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -210,12 +170,9 @@ export function HotelDetailPage() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">Rooms</h2>
-          <Button asChild size="sm">
-            <Link to={`/hotels/${hotelId}/rooms/new`}>
-              <Plus className="size-4" />
-              Add room
-            </Link>
-          </Button>
+          <span className="text-muted-foreground text-xs">
+            Adds &amp; removals come from managers via Requests
+          </span>
         </div>
         <div className="rounded-md border">
           <Table>
@@ -235,7 +192,7 @@ export function HotelDetailPage() {
                     colSpan={5}
                     className="text-muted-foreground py-8 text-center"
                   >
-                    No rooms yet. Add the hotel's first room.
+                    No rooms yet.
                   </TableCell>
                 </TableRow>
               )}
@@ -262,14 +219,6 @@ export function HotelDetailPage() {
                         <Pencil className="size-4" />
                       </Link>
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Delete"
-                      onClick={() => setRoomToDelete(room)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -278,35 +227,7 @@ export function HotelDetailPage() {
         </div>
       </section>
 
-      <ConfirmDialog
-        open={toDelete !== null}
-        onOpenChange={(open) => !open && setToDelete(null)}
-        title="Remove staff member?"
-        description={
-          toDelete ? `${toDelete.name} will lose access to this hotel.` : ''
-        }
-        confirmLabel="Remove"
-        destructive
-        loading={deleteUser.isPending}
-        onConfirm={handleDelete}
-      />
-
-      <ConfirmDialog
-        open={roomToDelete !== null}
-        onOpenChange={(open) => !open && setRoomToDelete(null)}
-        title="Remove room?"
-        description={
-          roomToDelete
-            ? `Room ${roomToDelete.room_number} will be permanently deleted.`
-            : ''
-        }
-        confirmLabel="Remove"
-        destructive
-        loading={deleteRoom.isPending}
-        onConfirm={handleDeleteRoom}
-      />
-
-      {/* Route-aware add/edit staff & room modals render here. */}
+      {/* Route-aware edit staff & room modals render here. */}
       <Outlet />
     </div>
   )

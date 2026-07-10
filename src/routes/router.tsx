@@ -8,6 +8,7 @@ import { AccountPage } from '@/pages/account'
 import { HotelDetailPage } from '@/pages/hotel-detail'
 import { HotelsPage } from '@/pages/hotels'
 import { NotFoundPage } from '@/pages/not-found'
+import { RequestsPage } from '@/pages/requests'
 
 import { RequireAuth } from './guards'
 
@@ -22,13 +23,12 @@ export const router = createBrowserRouter([
           // Standalone multi-step wizard (must precede the ":hotelId" match).
           { path: 'hotels/new', element: <ProvisionWizard /> },
           { path: 'hotels', element: <HotelsPage /> },
+          { path: 'requests', element: <RequestsPage /> },
           {
             path: 'hotels/:hotelId',
             element: <HotelDetailPage />,
             children: [
-              { path: 'staff/new', element: <HotelUserFormModal /> },
               { path: 'staff/:userId', element: <HotelUserFormModal /> },
-              { path: 'rooms/new', element: <RoomFormModal /> },
               { path: 'rooms/:roomId', element: <RoomFormModal /> },
             ],
           },

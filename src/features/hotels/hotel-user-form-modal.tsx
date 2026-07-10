@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -16,50 +16,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  HOTEL_ROLES,
-  type StaffCreate,
-  type StaffUpdate,
-} from '@/lib/api/types'
+import { HOTEL_ROLES, type StaffUpdate } from '@/lib/api/types'
 import { ApiError } from '@/lib/api/unwrap'
-import {
-  useCreateHotelUser,
-  useHotelStaff,
-  useUpdateHotelUser,
-} from '@/lib/queries/hotel-users'
+import { useHotelStaff, useUpdateHotelUser } from '@/lib/queries/hotel-users'
 
 function label(role: string) {
   return role.charAt(0).toUpperCase() + role.slice(1)
 }
 
-function makeSchema(isEdit: boolean) {
-  return z.object({
-    email: z.string().trim().email('Enter a valid email'),
-    name: z.string().trim().min(1, 'Required').max(255, 'Max 255 characters'),
-    role: z.enum(['manager', 'housekeeper']),
-    password: isEdit ? z.string() : z.string().min(8, 'Min 8 characters'),
-  })
-}
+// Editing an existing staff member is still an admin-direct action. Adding and
+// removing staff go through the manager → admin Requests queue instead.
+const schema = z.object({
+  email: z.string().trim().email('Enter a valid email'),
+  name: z.string().trim().min(1, 'Required').max(255, 'Max 255 characters'),
+  role: z.enum(['manager', 'housekeeper']),
+})
 
-type FormValues = z.infer<ReturnType<typeof makeSchema>>
+type FormValues = z.infer<typeof schema>
 
 export function HotelUserFormModal() {
-  const { hotelId = '', userId } = useParams()
-  const isEdit = Boolean(userId)
+  const { hotelId = '', userId = '' } = useParams()
   const navigate = useNavigate()
   const backTo = `/hotels/${hotelId}`
 
   const { data: staff } = useHotelStaff(hotelId)
-  const member = userId ? staff?.find((m) => m.id === userId) : undefined
+  const member = staff?.find((m) => m.id === userId)
 
-  const createUser = useCreateHotelUser(hotelId)
   const updateUser = useUpdateHotelUser(hotelId)
-  const isPending = createUser.isPending || updateUser.isPending
 
-  const schema = useMemo(() => makeSchema(isEdit), [isEdit])
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', name: '', role: 'manager', password: '' },
+    defaultValues: { email: '', name: '', role: 'manager' },
   })
 
   useEffect(() => {
@@ -68,12 +55,11 @@ export function HotelUserFormModal() {
         email: member.email,
         name: member.name,
         role: member.role === 'housekeeper' ? 'housekeeper' : 'manager',
-        password: '',
       })
     }
   }, [member, form])
 
-  if (isEdit && staff && !member) {
+  if (staff && !member) {
     return (
       <RouteModal title="Staff member not found" backTo={backTo}>
         <p className="text-muted-foreground text-sm">
@@ -84,45 +70,33 @@ export function HotelUserFormModal() {
   }
 
   function onSubmit(values: FormValues) {
-    const handlers = {
-      onSuccess: () => {
-        toast.success(isEdit ? 'Staff updated' : 'Staff added')
-        navigate(backTo)
-      },
-      onError: (e: unknown) => {
-        if (e instanceof ApiError && e.status === 409) {
-          form.setError('email', { message: e.message })
-        } else {
-          toast.error(
-            e instanceof ApiError ? e.message : 'Something went wrong',
-          )
-        }
-      },
+    const body: StaffUpdate = {
+      email: values.email,
+      name: values.name,
+      role: values.role,
     }
-
-    if (isEdit && userId) {
-      const body: StaffUpdate = {
-        email: values.email,
-        name: values.name,
-        role: values.role,
-      }
-      updateUser.mutate({ userId, body }, handlers)
-    } else {
-      const body: StaffCreate = {
-        email: values.email,
-        name: values.name,
-        role: values.role,
-        password: values.password,
-      }
-      createUser.mutate(body, handlers)
-    }
+    updateUser.mutate(
+      { userId, body },
+      {
+        onSuccess: () => {
+          toast.success('Staff updated')
+          navigate(backTo)
+        },
+        onError: (e: unknown) => {
+          if (e instanceof ApiError && e.status === 409) {
+            form.setError('email', { message: e.message })
+          } else {
+            toast.error(
+              e instanceof ApiError ? e.message : 'Something went wrong',
+            )
+          }
+        },
+      },
+    )
   }
 
   return (
-    <RouteModal
-      title={isEdit ? 'Edit staff member' : 'Add staff member'}
-      backTo={backTo}
-    >
+    <RouteModal title="Edit staff member" backTo={backTo}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-4"
@@ -161,23 +135,6 @@ export function HotelUserFormModal() {
             )}
           />
         </Field>
-        {!isEdit && (
-          <Field
-            label="Temporary password"
-            htmlFor="password"
-            error={form.formState.errors.password?.message}
-          >
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              {...form.register('password')}
-            />
-            <p className="text-muted-foreground text-sm">
-              The user changes this on their account page after signing in.
-            </p>
-          </Field>
-        )}
         <div className="flex justify-end gap-2 pt-2">
           <Button
             type="button"
@@ -186,8 +143,8 @@ export function HotelUserFormModal() {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? 'Saving…' : 'Save'}
+          <Button type="submit" disabled={updateUser.isPending}>
+            {updateUser.isPending ? 'Saving…' : 'Save'}
           </Button>
         </div>
       </form>

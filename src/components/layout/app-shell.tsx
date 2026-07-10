@@ -1,31 +1,42 @@
-import { Building2, LogOut, UserCircle } from 'lucide-react'
+import { Building2, Inbox, LogOut, UserCircle } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { useAuth } from '@/auth/auth-context'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { useAccessRequests } from '@/lib/queries/access-requests'
 import { cn } from '@/lib/utils'
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+    isActive
+      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+      : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
+  )
 
 export function AppShell() {
   const { logout } = useAuth()
+  const { data: pending } = useAccessRequests('pending')
+  const pendingCount = pending?.length ?? 0
 
   return (
     <div className="flex min-h-screen">
       <aside className="bg-sidebar text-sidebar-foreground flex w-60 flex-col border-r">
         <div className="px-5 py-4 text-lg font-semibold">SevenOne Admin</div>
         <nav className="flex flex-1 flex-col gap-1 px-3">
-          <NavLink
-            to="/hotels"
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
-              )
-            }
-          >
+          <NavLink to="/hotels" className={navLinkClass}>
             <Building2 className="size-4" />
             Hotels
+          </NavLink>
+          <NavLink to="/requests" className={navLinkClass}>
+            <Inbox className="size-4" />
+            Requests
+            {pendingCount > 0 && (
+              <Badge className="ml-auto" variant="secondary">
+                {pendingCount}
+              </Badge>
+            )}
           </NavLink>
         </nav>
       </aside>
