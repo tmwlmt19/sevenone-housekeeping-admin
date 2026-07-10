@@ -1,7 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/lib/api/client'
-import type { HotelCreate, HotelUpdate } from '@/lib/api/types'
+import type {
+  HotelCreate,
+  HotelProvisionRequest,
+  HotelUpdate,
+} from '@/lib/api/types'
 import { unwrap } from '@/lib/api/unwrap'
 
 import { qk } from './keys'
@@ -30,6 +34,15 @@ export function useCreateHotel() {
   return useMutation({
     mutationFn: async (body: HotelCreate) =>
       unwrap(await api.POST('/api/v1/hotels', { body })),
+    onSuccess: () => client.invalidateQueries({ queryKey: qk.hotels() }),
+  })
+}
+
+export function useProvisionHotel() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: HotelProvisionRequest) =>
+      unwrap(await api.POST('/api/v1/hotels/provision', { body })),
     onSuccess: () => client.invalidateQueries({ queryKey: qk.hotels() }),
   })
 }

@@ -116,6 +116,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hotels/provision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Provision Hotel
+         * @description Create a hotel and optionally bulk-import its rooms and staff, atomically.
+         *
+         *     All-or-nothing: if any row fails validation, nothing is committed — not even
+         *     the hotel. All row errors are collected and returned together (422) so the
+         *     caller can fix the whole file at once. Provisioned users share one temporary
+         *     password (returned once) and must change it on first login.
+         */
+        post: operations["provision_hotel_api_v1_hotels_provision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hotels/{hotel_id}": {
         parameters: {
             query?: never;
@@ -280,6 +305,28 @@ export interface components {
             name: string;
             /** Address */
             address?: string | null;
+        };
+        /**
+         * HotelProvisionRequest
+         * @description Create a hotel and (optionally) bulk-import its rooms and staff in one
+         *     atomic operation. Both lists are optional; either or both may be empty.
+         */
+        HotelProvisionRequest: {
+            hotel: components["schemas"]["HotelCreate"];
+            /** Rooms */
+            rooms?: components["schemas"]["RoomCreate"][];
+            /** Users */
+            users?: components["schemas"]["UserProvision"][];
+        };
+        /** HotelProvisionResponse */
+        HotelProvisionResponse: {
+            hotel: components["schemas"]["HotelRead"];
+            /** Rooms Created */
+            rooms_created: number;
+            /** Users */
+            users: components["schemas"]["UserRead"][];
+            /** Temporary Password */
+            temporary_password: string;
         };
         /** HotelRead */
         HotelRead: {
@@ -489,6 +536,21 @@ export interface components {
             name: string;
             role: components["schemas"]["UserRole"];
         };
+        /**
+         * UserProvision
+         * @description A staff row in a provisioning batch. No password: every provisioned user
+         *     gets the batch's shared temporary password and must change it on first login.
+         */
+        UserProvision: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Name */
+            name: string;
+            role: components["schemas"]["UserRole"];
+        };
         /** UserRead */
         UserRead: {
             /**
@@ -509,6 +571,8 @@ export interface components {
             /** Name */
             name: string;
             role: components["schemas"]["UserRole"];
+            /** Must Change Password */
+            must_change_password: boolean;
             /**
              * Created At
              * Format: date-time
@@ -717,6 +781,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HotelRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    provision_hotel_api_v1_hotels_provision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HotelProvisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HotelProvisionResponse"];
                 };
             };
             /** @description Validation Error */

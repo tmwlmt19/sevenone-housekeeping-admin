@@ -1,8 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import { AppShell } from '@/components/layout/app-shell'
-import { CreateHotelModal } from '@/features/hotels/create-hotel-modal'
 import { HotelUserFormModal } from '@/features/hotels/hotel-user-form-modal'
+import { ProvisionWizard } from '@/features/hotels/wizard/provision-wizard'
 import { AccountPage } from '@/pages/account'
 import { HotelDetailPage } from '@/pages/hotel-detail'
 import { HotelsPage } from '@/pages/hotels'
@@ -18,11 +18,9 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { index: true, element: <Navigate to="/hotels" replace /> },
-          {
-            path: 'hotels',
-            element: <HotelsPage />,
-            children: [{ path: 'new', element: <CreateHotelModal /> }],
-          },
+          // Standalone multi-step wizard (must precede the ":hotelId" match).
+          { path: 'hotels/new', element: <ProvisionWizard /> },
+          { path: 'hotels', element: <HotelsPage /> },
           {
             path: 'hotels/:hotelId',
             element: <HotelDetailPage />,
