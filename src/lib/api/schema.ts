@@ -233,6 +233,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hotels/{hotel_id}/rooms/{room_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Room Status
+         * @description Change only a room's status. Available to managers and admins; the
+         *     full add/rename/delete lifecycle is reserved for platform admins.
+         */
+        patch: operations["update_room_status_api_v1_hotels__hotel_id__rooms__room_id__status_patch"];
+        trace?: never;
+    };
     "/api/v1/hotels/{hotel_id}/tasks": {
         parameters: {
             query?: never;
@@ -420,6 +441,14 @@ export interface components {
          * @enum {string}
          */
         RoomStatus: "clean" | "dirty" | "in_progress" | "out_of_service";
+        /**
+         * RoomStatusUpdate
+         * @description Status-only update. Managers may change a room's status without the
+         *     full-edit (add/rename/delete) rights reserved for platform admins.
+         */
+        RoomStatusUpdate: {
+            status: components["schemas"]["RoomStatus"];
+        };
         /** RoomUpdate */
         RoomUpdate: {
             /** Room Number */
@@ -558,11 +587,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /**
-             * Hotel Id
-             * Format: uuid
-             */
-            hotel_id: string;
+            /** Hotel Id */
+            hotel_id: string | null;
             /**
              * Email
              * Format: email
@@ -1209,6 +1235,42 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_room_status_api_v1_hotels__hotel_id__rooms__room_id__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                hotel_id: string;
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomRead"];
+                };
             };
             /** @description Validation Error */
             422: {

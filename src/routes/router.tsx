@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import { AppShell } from '@/components/layout/app-shell'
 import { HotelUserFormModal } from '@/features/hotels/hotel-user-form-modal'
+import { RoomFormModal } from '@/features/hotels/room-form-modal'
 import { ProvisionWizard } from '@/features/hotels/wizard/provision-wizard'
 import { AccountPage } from '@/pages/account'
 import { HotelDetailPage } from '@/pages/hotel-detail'
@@ -27,6 +28,8 @@ export const router = createBrowserRouter([
             children: [
               { path: 'staff/new', element: <HotelUserFormModal /> },
               { path: 'staff/:userId', element: <HotelUserFormModal /> },
+              { path: 'rooms/new', element: <RoomFormModal /> },
+              { path: 'rooms/:roomId', element: <RoomFormModal /> },
             ],
           },
           { path: 'account', element: <AccountPage /> },

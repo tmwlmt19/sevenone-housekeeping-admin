@@ -22,10 +22,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { Staff } from '@/lib/api/types'
+import { ROOM_STATUS_LABELS, type Room, type Staff } from '@/lib/api/types'
 import { ApiError } from '@/lib/api/unwrap'
 import { useDeleteHotelUser, useHotelStaff } from '@/lib/queries/hotel-users'
 import { useHotel, useUpdateHotel } from '@/lib/queries/hotels'
+import { useDeleteRoom, useHotelRooms } from '@/lib/queries/rooms'
 
 const hotelSchema = z.object({
   name: z.string().trim().min(1, 'Required').max(255, 'Max 255 characters'),
@@ -45,6 +46,9 @@ export function HotelDetailPage() {
   const { data: staff } = useHotelStaff(hotelId)
   const deleteUser = useDeleteHotelUser(hotelId)
   const [toDelete, setToDelete] = useState<Staff | null>(null)
+  const { data: rooms } = useHotelRooms(hotelId)
+  const deleteRoom = useDeleteRoom(hotelId)
+  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null)
 
   const form = useForm<HotelForm>({
     resolver: zodResolver(hotelSchema),
@@ -75,6 +79,18 @@ export function HotelDetailPage() {
       onSuccess: () => {
         toast.success(`${toDelete.name} removed`)
         setToDelete(null)
+      },
+      onError: (e) =>
+        toast.error(e instanceof ApiError ? e.message : 'Failed to remove'),
+    })
+  }
+
+  function handleDeleteRoom() {
+    if (!roomToDelete) return
+    deleteRoom.mutate(roomToDelete.id, {
+      onSuccess: () => {
+        toast.success(`Room ${roomToDelete.room_number} removed`)
+        setRoomToDelete(null)
       },
       onError: (e) =>
         toast.error(e instanceof ApiError ? e.message : 'Failed to remove'),
@@ -191,6 +207,77 @@ export function HotelDetailPage() {
         </div>
       </section>
 
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Rooms</h2>
+          <Button asChild size="sm">
+            <Link to={`/hotels/${hotelId}/rooms/new`}>
+              <Plus className="size-4" />
+              Add room
+            </Link>
+          </Button>
+        </div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Room</TableHead>
+                <TableHead>Floor</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-24 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rooms && rooms.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="text-muted-foreground py-8 text-center"
+                  >
+                    No rooms yet. Add the hotel's first room.
+                  </TableCell>
+                </TableRow>
+              )}
+              {rooms?.map((room) => (
+                <TableRow key={room.id}>
+                  <TableCell className="font-medium">
+                    {room.room_number}
+                  </TableCell>
+                  <TableCell>{room.floor ?? '—'}</TableCell>
+                  <TableCell>{room.room_type ?? '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {ROOM_STATUS_LABELS[room.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Edit"
+                    >
+                      <Link to={`/hotels/${hotelId}/rooms/${room.id}`}>
+                        <Pencil className="size-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Delete"
+                      onClick={() => setRoomToDelete(room)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </section>
+
       <ConfirmDialog
         open={toDelete !== null}
         onOpenChange={(open) => !open && setToDelete(null)}
@@ -204,7 +291,22 @@ export function HotelDetailPage() {
         onConfirm={handleDelete}
       />
 
-      {/* Route-aware add/edit staff modal renders here. */}
+      <ConfirmDialog
+        open={roomToDelete !== null}
+        onOpenChange={(open) => !open && setRoomToDelete(null)}
+        title="Remove room?"
+        description={
+          roomToDelete
+            ? `Room ${roomToDelete.room_number} will be permanently deleted.`
+            : ''
+        }
+        confirmLabel="Remove"
+        destructive
+        loading={deleteRoom.isPending}
+        onConfirm={handleDeleteRoom}
+      />
+
+      {/* Route-aware add/edit staff & room modals render here. */}
       <Outlet />
     </div>
   )

@@ -12,7 +12,9 @@ export type StaffCreate = Schemas['UserCreate']
 export type StaffUpdate = Schemas['UserUpdate']
 export type UserRole = Schemas['UserRole']
 
+export type Room = Schemas['RoomRead']
 export type RoomCreate = Schemas['RoomCreate']
+export type RoomUpdate = Schemas['RoomUpdate']
 export type RoomStatus = Schemas['RoomStatus']
 export type UserProvision = Schemas['UserProvision']
 export type HotelProvisionRequest = Schemas['HotelProvisionRequest']
@@ -24,6 +26,13 @@ export const ROOM_STATUSES: RoomStatus[] = [
   'in_progress',
   'out_of_service',
 ]
+
+export const ROOM_STATUS_LABELS: Record<RoomStatus, string> = {
+  clean: 'Clean',
+  dirty: 'Dirty',
+  in_progress: 'In progress',
+  out_of_service: 'Out of service',
+}
 
 // Hotel-staff roles the admin can assign (admin is a platform role, not a hotel one).
 export const HOTEL_ROLES: UserRole[] = ['manager', 'housekeeper']
