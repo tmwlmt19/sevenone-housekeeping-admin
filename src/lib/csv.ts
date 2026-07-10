@@ -34,7 +34,10 @@ export const EMPTY_STAFF: StaffDraft = {
 export type RowErrors = Partial<Record<string, string>>
 
 function normalizeKey(key: string): string {
-  return key.trim().toLowerCase().replace(/[\s-]+/g, '_')
+  return key
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
 }
 
 /** Map a parsed CSV row's headers onto our known aliases (case/space tolerant). */
@@ -87,21 +90,30 @@ export async function parseStaffCsv(file: File): Promise<StaffDraft[]> {
 
 // --- Validation (mirrors the backend rules; the server stays authoritative) ---
 
-export function validateRooms(rooms: RoomDraft[]): Map<number, RowErrors> {
+// A minimal translator signature so this module doesn't depend on i18next types.
+// Callers pass i18next's `t` bound to the `wizard.csv.*` keys.
+export type Translate = (key: string, opts?: Record<string, unknown>) => string
+
+export function validateRooms(
+  rooms: RoomDraft[],
+  t: Translate,
+): Map<number, RowErrors> {
   const errors = new Map<number, RowErrors>()
   const seen = new Map<string, number>()
   rooms.forEach((room, i) => {
     const e: RowErrors = {}
     const num = room.room_number.trim()
-    if (!num) e.room_number = 'Required'
-    else if (num.length > 50) e.room_number = 'Max 50 characters'
+    if (!num) e.room_number = t('wizard.csv.required')
+    else if (num.length > 50) e.room_number = t('wizard.csv.max50')
     else if (seen.has(num))
-      e.room_number = `Duplicate of row ${seen.get(num)! + 1}`
+      e.room_number = t('wizard.csv.duplicateOfRow', {
+        row: seen.get(num)! + 1,
+      })
     else seen.set(num, i)
 
     if (room.floor.trim() && !/^-?\d+$/.test(room.floor.trim()))
-      e.floor = 'Must be a whole number'
-    if (room.room_type.trim().length > 20) e.room_type = 'Max 20 characters'
+      e.floor = t('wizard.csv.wholeNumber')
+    if (room.room_type.trim().length > 20) e.room_type = t('wizard.csv.max20')
     if (Object.keys(e).length) errors.set(i, e)
   })
   return errors
@@ -109,20 +121,24 @@ export function validateRooms(rooms: RoomDraft[]): Map<number, RowErrors> {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function validateStaff(staff: StaffDraft[]): Map<number, RowErrors> {
+export function validateStaff(
+  staff: StaffDraft[],
+  t: Translate,
+): Map<number, RowErrors> {
   const errors = new Map<number, RowErrors>()
   const seen = new Map<string, number>()
   staff.forEach((member, i) => {
     const e: RowErrors = {}
     const email = member.email.trim().toLowerCase()
-    if (!member.email.trim()) e.email = 'Required'
-    else if (!EMAIL_RE.test(member.email.trim())) e.email = 'Invalid email'
+    if (!member.email.trim()) e.email = t('wizard.csv.required')
+    else if (!EMAIL_RE.test(member.email.trim()))
+      e.email = t('wizard.csv.invalidEmail')
     else if (seen.has(email))
-      e.email = `Duplicate of row ${seen.get(email)! + 1}`
+      e.email = t('wizard.csv.duplicateOfRow', { row: seen.get(email)! + 1 })
     else seen.set(email, i)
 
-    if (!member.name.trim()) e.name = 'Required'
-    else if (member.name.trim().length > 255) e.name = 'Max 255 characters'
+    if (!member.name.trim()) e.name = t('wizard.csv.required')
+    else if (member.name.trim().length > 255) e.name = t('wizard.csv.max255')
     if (Object.keys(e).length) errors.set(i, e)
   })
   return errors
@@ -149,8 +165,10 @@ export function staffToPayload(staff: StaffDraft[]): UserProvision[] {
 
 // --- Templates & downloads ---
 
-export const ROOMS_TEMPLATE = 'room_number,floor,room_type,status\n101,1,STD,clean\n'
-export const STAFF_TEMPLATE = 'email,name,role\njane@example.com,Jane Doe,manager\n'
+export const ROOMS_TEMPLATE =
+  'room_number,floor,room_type,status\n101,1,STD,clean\n'
+export const STAFF_TEMPLATE =
+  'email,name,role\njane@example.com,Jane Doe,manager\n'
 
 export function downloadText(
   filename: string,

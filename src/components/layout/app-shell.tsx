@@ -1,7 +1,9 @@
 import { Building2, Inbox, LogOut, UserCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { useAuth } from '@/auth/auth-context'
+import { PreferencesMenu } from '@/components/preferences-menu'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAccessRequests } from '@/lib/queries/access-requests'
@@ -16,6 +18,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   )
 
 export function AppShell() {
+  const { t } = useTranslation()
   const { logout } = useAuth()
   const { data: pending } = useAccessRequests('pending')
   const pendingCount = pending?.length ?? 0
@@ -23,15 +26,17 @@ export function AppShell() {
   return (
     <div className="flex min-h-screen">
       <aside className="bg-sidebar text-sidebar-foreground flex w-60 flex-col border-r">
-        <div className="px-5 py-4 text-lg font-semibold">SevenOne Admin</div>
+        <div className="px-5 py-4 text-lg font-semibold">
+          {t('nav.adminTitle')}
+        </div>
         <nav className="flex flex-1 flex-col gap-1 px-3">
           <NavLink to="/hotels" className={navLinkClass}>
             <Building2 className="size-4" />
-            Hotels
+            {t('nav.hotels')}
           </NavLink>
           <NavLink to="/requests" className={navLinkClass}>
             <Inbox className="size-4" />
-            Requests
+            {t('nav.requests')}
             {pendingCount > 0 && (
               <Badge className="ml-auto" variant="secondary">
                 {pendingCount}
@@ -43,18 +48,19 @@ export function AppShell() {
       <div className="flex flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b px-6">
           <span className="text-muted-foreground text-sm">
-            Platform console
+            {t('nav.platformConsole')}
           </span>
           <div className="flex items-center gap-1">
+            <PreferencesMenu />
             <Button asChild variant="ghost" size="sm">
               <Link to="/account">
                 <UserCircle className="size-4" />
-                Account
+                {t('nav.account')}
               </Link>
             </Button>
             <Button variant="ghost" size="sm" onClick={() => logout()}>
               <LogOut className="size-4" />
-              Logout
+              {t('nav.logout')}
             </Button>
           </div>
         </header>

@@ -1,5 +1,6 @@
 import { Download, Plus, Trash2, Upload } from 'lucide-react'
 import { useRef, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -32,8 +33,8 @@ export interface ColumnDef<T> {
 }
 
 interface ImportStepProps<T> {
-  /** Human label for a row, e.g. "room" / "staff member". */
-  noun: string
+  /** Which entity this step imports; drives pluralized labels. */
+  kind: 'rooms' | 'staff'
   columns: ColumnDef<T>[]
   rows: T[]
   errors: Map<number, RowErrors>
@@ -46,7 +47,7 @@ interface ImportStepProps<T> {
 }
 
 export function ImportStep<T>({
-  noun,
+  kind,
   columns,
   rows,
   errors,
@@ -57,21 +58,40 @@ export function ImportStep<T>({
   templateName,
   children,
 }: ImportStepProps<T>) {
+  const { t } = useTranslation()
   const fileRef = useRef<HTMLInputElement>(null)
+  const countKey =
+    kind === 'rooms'
+      ? ('wizard.import.roomsCount' as const)
+      : ('wizard.import.staffCount' as const)
+  const loadedKey =
+    kind === 'rooms'
+      ? ('wizard.import.roomsLoaded' as const)
+      : ('wizard.import.staffLoaded' as const)
+  const emptyText =
+    kind === 'rooms'
+      ? t('wizard.import.roomsEmpty')
+      : t('wizard.import.staffEmpty')
+  const addLabel =
+    kind === 'rooms' ? t('wizard.import.addRoom') : t('wizard.import.addStaff')
+  const removeLabel =
+    kind === 'rooms'
+      ? t('wizard.import.removeRoom')
+      : t('wizard.import.removeStaff')
 
   async function onFile(file: File | undefined) {
     if (!file) return
     try {
       const parsed = await parseFile(file)
       if (parsed.length === 0) {
-        toast.error('No rows found in that file.')
+        toast.error(t('wizard.import.noRowsFile'))
         return
       }
       // Append to any rows already entered, so uploads and manual entry combine.
       onChange([...rows, ...parsed])
-      toast.success(`Loaded ${parsed.length} ${noun}${plural(parsed.length)}`)
+      toast.success(t(loadedKey, { count: parsed.length }))
     } catch {
-      toast.error("Couldn't read that file. Is it a valid CSV?")
+      toast.error(t('wizard.import.cantRead'))
     } finally {
       if (fileRef.current) fileRef.current.value = ''
     }
@@ -79,9 +99,7 @@ export function ImportStep<T>({
 
   function updateCell(rowIndex: number, key: keyof T, value: string) {
     onChange(
-      rows.map((r, i) =>
-        i === rowIndex ? ({ ...r, [key]: value } as T) : r,
-      ),
+      rows.map((r, i) => (i === rowIndex ? ({ ...r, [key]: value } as T) : r)),
     )
   }
 
@@ -107,7 +125,7 @@ export function ImportStep<T>({
           onClick={() => fileRef.current?.click()}
         >
           <Upload className="size-4" />
-          Upload CSV
+          {t('wizard.import.uploadCsv')}
         </Button>
         <Button
           type="button"
@@ -115,15 +133,14 @@ export function ImportStep<T>({
           onClick={() => downloadText(templateName, templateCsv)}
         >
           <Download className="size-4" />
-          Download template
+          {t('wizard.import.downloadTemplate')}
         </Button>
         <div className="text-muted-foreground ml-auto text-sm">
-          {rows.length} {noun}
-          {plural(rows.length)}
+          {t(countKey, { count: rows.length })}
           {errorCount > 0 && (
             <span className="text-destructive">
               {' '}
-              · {errorCount} with errors
+              {t('wizard.import.withErrors', { count: errorCount })}
             </span>
           )}
         </div>
@@ -133,8 +150,7 @@ export function ImportStep<T>({
 
       {rows.length === 0 ? (
         <div className="text-muted-foreground rounded-md border border-dashed py-10 text-center text-sm">
-          No {noun}s yet. Upload a CSV or add rows manually — this step is
-          optional.
+          {emptyText}
         </div>
       ) : (
         <div className="rounded-md border">
@@ -193,7 +209,7 @@ export function ImportStep<T>({
                         variant="ghost"
                         size="icon"
                         onClick={() => removeRow(i)}
-                        aria-label={`Remove ${noun}`}
+                        aria-label={removeLabel}
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -214,13 +230,9 @@ export function ImportStep<T>({
           onClick={() => onChange([...rows, { ...emptyRow }])}
         >
           <Plus className="size-4" />
-          Add {noun}
+          {addLabel}
         </Button>
       </div>
     </div>
   )
-}
-
-function plural(n: number): string {
-  return n === 1 ? '' : 's'
 }

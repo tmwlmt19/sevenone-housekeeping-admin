@@ -1,7 +1,9 @@
 import { CheckCircle2, Copy, Download } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import type { UserRole } from '@/lib/api/types'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -24,13 +26,14 @@ export interface ProvisionOutcome {
 }
 
 export function ProvisionResult({ outcome }: { outcome: ProvisionOutcome }) {
+  const { t } = useTranslation()
   const { hotelName, roomsCreated, users, temporaryPassword } = outcome
 
   function copyPassword() {
     navigator.clipboard
       .writeText(temporaryPassword)
-      .then(() => toast.success('Temporary password copied'))
-      .catch(() => toast.error("Couldn't copy to clipboard"))
+      .then(() => toast.success(t('provisionResult.passwordCopied')))
+      .catch(() => toast.error(t('provisionResult.cantCopy')))
   }
 
   function downloadCredentials() {
@@ -47,8 +50,8 @@ export function ProvisionResult({ outcome }: { outcome: ProvisionOutcome }) {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        title="Hotel created"
-        description={`${hotelName} is ready.`}
+        title={t('provisionResult.title')}
+        description={t('provisionResult.subtitle', { hotel: hotelName })}
       />
 
       <Card>
@@ -56,10 +59,10 @@ export function ProvisionResult({ outcome }: { outcome: ProvisionOutcome }) {
           <div className="flex items-center gap-3">
             <CheckCircle2 className="text-primary size-6" />
             <div className="text-sm">
-              Imported <strong>{roomsCreated}</strong> room
-              {roomsCreated === 1 ? '' : 's'} and{' '}
-              <strong>{users.length}</strong> staff member
-              {users.length === 1 ? '' : 's'}.
+              {t('provisionResult.importedSummary', {
+                rooms: t('provisionResult.roomsCount', { count: roomsCreated }),
+                staff: t('provisionResult.staffCount', { count: users.length }),
+              })}
             </div>
           </div>
 
@@ -67,11 +70,10 @@ export function ProvisionResult({ outcome }: { outcome: ProvisionOutcome }) {
             <div className="flex flex-col gap-3">
               <div className="bg-muted/40 rounded-md border p-4">
                 <p className="mb-1 text-sm font-medium">
-                  Shared temporary password
+                  {t('provisionResult.sharedPassword')}
                 </p>
                 <p className="text-muted-foreground mb-3 text-sm">
-                  Give this to the new staff. They must change it on first
-                  sign-in. It won't be shown again.
+                  {t('provisionResult.sharedPasswordDesc')}
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="bg-background rounded border px-3 py-1.5 font-mono text-sm">
@@ -79,7 +81,7 @@ export function ProvisionResult({ outcome }: { outcome: ProvisionOutcome }) {
                   </code>
                   <Button variant="outline" size="sm" onClick={copyPassword}>
                     <Copy className="size-4" />
-                    Copy
+                    {t('provisionResult.copy')}
                   </Button>
                   <Button
                     variant="outline"
@@ -87,7 +89,7 @@ export function ProvisionResult({ outcome }: { outcome: ProvisionOutcome }) {
                     onClick={downloadCredentials}
                   >
                     <Download className="size-4" />
-                    Download credentials CSV
+                    {t('provisionResult.downloadCsv')}
                   </Button>
                 </div>
               </div>
@@ -96,9 +98,9 @@ export function ProvisionResult({ outcome }: { outcome: ProvisionOutcome }) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
+                      <TableHead>{t('provisionResult.name')}</TableHead>
+                      <TableHead>{t('provisionResult.email')}</TableHead>
+                      <TableHead>{t('provisionResult.role')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -108,7 +110,9 @@ export function ProvisionResult({ outcome }: { outcome: ProvisionOutcome }) {
                         <TableCell className="text-muted-foreground">
                           {u.email}
                         </TableCell>
-                        <TableCell className="capitalize">{u.role}</TableCell>
+                        <TableCell>
+                          {t(`enums.role.${u.role as UserRole}`)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -119,10 +123,12 @@ export function ProvisionResult({ outcome }: { outcome: ProvisionOutcome }) {
 
           <div className="flex gap-2">
             <Button asChild>
-              <Link to={`/hotels/${outcome.hotelId}`}>Go to hotel</Link>
+              <Link to={`/hotels/${outcome.hotelId}`}>
+                {t('provisionResult.goToHotel')}
+              </Link>
             </Button>
             <Button asChild variant="outline">
-              <Link to="/hotels">Back to hotels</Link>
+              <Link to="/hotels">{t('provisionResult.backToHotels')}</Link>
             </Button>
           </div>
         </CardContent>

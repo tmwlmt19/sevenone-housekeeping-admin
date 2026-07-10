@@ -11,6 +11,10 @@ export type Staff = Schemas['UserRead']
 export type StaffUpdate = Schemas['UserUpdate']
 export type UserRole = Schemas['UserRole']
 
+// UI preferences (persisted per-user).
+export type Theme = Schemas['Theme']
+export type Language = Schemas['Language']
+
 export type Room = Schemas['RoomRead']
 export type RoomCreate = Schemas['RoomCreate']
 export type RoomUpdate = Schemas['RoomUpdate']

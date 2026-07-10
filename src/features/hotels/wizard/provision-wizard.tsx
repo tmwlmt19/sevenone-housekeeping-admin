@@ -1,5 +1,6 @@
 import { Check, ChevronLeft } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -23,6 +24,7 @@ import {
   validateStaff,
   type RoomDraft,
   type StaffDraft,
+  type Translate,
 } from '@/lib/csv'
 import { cn } from '@/lib/utils'
 import { useProvisionHotel } from '@/lib/queries/hotels'
@@ -30,43 +32,70 @@ import { useProvisionHotel } from '@/lib/queries/hotels'
 import { ImportStep, type ColumnDef } from './import-step'
 import { ProvisionResult, type ProvisionOutcome } from './provision-result'
 
-const STEPS = ['Details', 'Rooms', 'Staff', 'Review'] as const
-
-function humanize(value: string): string {
-  return value
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-}
-
-const ROOM_COLUMNS: ColumnDef<RoomDraft>[] = [
-  { key: 'room_number', label: 'Room number', placeholder: '101' },
-  { key: 'floor', label: 'Floor', placeholder: '1' },
-  { key: 'room_type', label: 'Type', placeholder: 'STD' },
-  {
-    key: 'status',
-    label: 'Status',
-    type: 'select',
-    options: ROOM_STATUSES,
-    optionLabel: humanize,
-  },
-]
-
-const STAFF_COLUMNS: ColumnDef<StaffDraft>[] = [
-  { key: 'name', label: 'Name', placeholder: 'Jane Doe' },
-  { key: 'email', label: 'Email', placeholder: 'jane@example.com' },
-  {
-    key: 'role',
-    label: 'Role',
-    type: 'select',
-    options: ['manager', 'housekeeper'],
-    optionLabel: humanize,
-  },
-]
+const STEP_KEYS = ['details', 'rooms', 'staff', 'review'] as const
 
 export function ProvisionWizard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const provision = useProvisionHotel()
+
+  // Adapt i18next's typed `t` to the loose translator csv.ts expects.
+  const tr: Translate = useCallback(
+    (key, opts) => t(key as never, opts as never) as unknown as string,
+    [t],
+  )
+
+  const roomColumns: ColumnDef<RoomDraft>[] = useMemo(
+    () => [
+      {
+        key: 'room_number',
+        label: t('wizard.import.columns.roomNumber'),
+        placeholder: '101',
+      },
+      {
+        key: 'floor',
+        label: t('wizard.import.columns.floor'),
+        placeholder: '1',
+      },
+      {
+        key: 'room_type',
+        label: t('wizard.import.columns.type'),
+        placeholder: 'STD',
+      },
+      {
+        key: 'status',
+        label: t('wizard.import.columns.status'),
+        type: 'select',
+        options: ROOM_STATUSES,
+        optionLabel: (v) =>
+          t(`enums.roomStatus.${v as (typeof ROOM_STATUSES)[number]}`),
+      },
+    ],
+    [t],
+  )
+
+  const staffColumns: ColumnDef<StaffDraft>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        label: t('wizard.import.columns.name'),
+        placeholder: 'Jane Doe',
+      },
+      {
+        key: 'email',
+        label: t('wizard.import.columns.email'),
+        placeholder: 'jane@example.com',
+      },
+      {
+        key: 'role',
+        label: t('wizard.import.columns.role'),
+        type: 'select',
+        options: ['manager', 'housekeeper'],
+        optionLabel: (v) => t(`enums.role.${v as 'manager' | 'housekeeper'}`),
+      },
+    ],
+    [t],
+  )
 
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
@@ -76,9 +105,9 @@ export function ProvisionWizard() {
   const [serverErrors, setServerErrors] = useState<RowError[]>([])
   const [outcome, setOutcome] = useState<ProvisionOutcome | null>(null)
 
-  const roomErrors = useMemo(() => validateRooms(rooms), [rooms])
-  const staffErrors = useMemo(() => validateStaff(staff), [staff])
-  const nameError = name.trim() === '' ? 'A hotel name is required' : undefined
+  const roomErrors = useMemo(() => validateRooms(rooms, tr), [rooms, tr])
+  const staffErrors = useMemo(() => validateStaff(staff, tr), [staff, tr])
+  const nameError = name.trim() === '' ? t('wizard.nameRequired') : undefined
 
   const canSubmit =
     !nameError && roomErrors.size === 0 && staffErrors.size === 0
@@ -92,7 +121,7 @@ export function ProvisionWizard() {
       toast.error(nameError)
       return
     }
-    setStep((s) => Math.min(s + 1, STEPS.length - 1))
+    setStep((s) => Math.min(s + 1, STEP_KEYS.length - 1))
   }
 
   function submit() {
@@ -108,7 +137,7 @@ export function ProvisionWizard() {
       },
       {
         onSuccess: (res) => {
-          toast.success('Hotel created')
+          toast.success(t('wizard.hotelCreated'))
           setOutcome({
             hotelId: res.hotel.id,
             hotelName: res.hotel.name,
@@ -126,7 +155,7 @@ export function ProvisionWizard() {
             setServerErrors(e.rowErrors)
           }
           toast.error(
-            e instanceof ApiError ? e.message : 'Something went wrong',
+            e instanceof ApiError ? e.message : t('common.somethingWentWrong'),
           )
         },
       },
@@ -136,11 +165,11 @@ export function ProvisionWizard() {
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
-        title="New hotel"
-        description="Set up a hotel and optionally import its rooms and staff."
+        title={t('wizard.title')}
+        description={t('wizard.subtitle')}
         action={
           <Button variant="ghost" onClick={() => navigate('/hotels')}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         }
       />
@@ -151,20 +180,24 @@ export function ProvisionWizard() {
         <CardContent className="pt-6">
           {step === 0 && (
             <div className="flex flex-col gap-4">
-              <Field label="Hotel name" htmlFor="name" error={nameError}>
+              <Field
+                label={t('wizard.hotelName')}
+                htmlFor="name"
+                error={nameError}
+              >
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Seaside Resort"
+                  placeholder={t('wizard.hotelNamePlaceholder')}
                 />
               </Field>
-              <Field label="Address" htmlFor="address">
+              <Field label={t('wizard.address')} htmlFor="address">
                 <Input
                   id="address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="123 Ocean Ave"
+                  placeholder={t('wizard.addressPlaceholder')}
                 />
               </Field>
             </div>
@@ -172,8 +205,8 @@ export function ProvisionWizard() {
 
           {step === 1 && (
             <ImportStep
-              noun="room"
-              columns={ROOM_COLUMNS}
+              kind="rooms"
+              columns={roomColumns}
               rows={rooms}
               errors={roomErrors}
               emptyRow={EMPTY_ROOM}
@@ -186,8 +219,8 @@ export function ProvisionWizard() {
 
           {step === 2 && (
             <ImportStep
-              noun="staff member"
-              columns={STAFF_COLUMNS}
+              kind="staff"
+              columns={staffColumns}
               rows={staff}
               errors={staffErrors}
               emptyRow={EMPTY_STAFF}
@@ -218,13 +251,15 @@ export function ProvisionWizard() {
           disabled={step === 0 || provision.isPending}
         >
           <ChevronLeft className="size-4" />
-          Back
+          {t('common.back')}
         </Button>
-        {step < STEPS.length - 1 ? (
-          <Button onClick={next}>Continue</Button>
+        {step < STEP_KEYS.length - 1 ? (
+          <Button onClick={next}>{t('common.continue')}</Button>
         ) : (
           <Button onClick={submit} disabled={!canSubmit || provision.isPending}>
-            {provision.isPending ? 'Creating…' : 'Create hotel'}
+            {provision.isPending
+              ? t('wizard.creating')
+              : t('wizard.createHotel')}
           </Button>
         )}
       </div>
@@ -233,13 +268,14 @@ export function ProvisionWizard() {
 }
 
 function Stepper({ current }: { current: number }) {
+  const { t } = useTranslation()
   return (
     <ol className="flex items-center gap-2">
-      {STEPS.map((label, i) => {
+      {STEP_KEYS.map((key, i) => {
         const done = i < current
         const active = i === current
         return (
-          <li key={label} className="flex flex-1 items-center gap-2">
+          <li key={key} className="flex flex-1 items-center gap-2">
             <span
               className={cn(
                 'flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium',
@@ -256,9 +292,9 @@ function Stepper({ current }: { current: number }) {
                 !active && !done && 'text-muted-foreground',
               )}
             >
-              {label}
+              {t(`wizard.steps.${key}`)}
             </span>
-            {i < STEPS.length - 1 && (
+            {i < STEP_KEYS.length - 1 && (
               <span className="bg-border mx-1 h-px flex-1" />
             )}
           </li>
@@ -285,40 +321,47 @@ function ReviewStep({
   clientErrorCount,
   serverErrors,
 }: ReviewStepProps) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-4">
       <dl className="grid grid-cols-2 gap-3 text-sm">
-        <dt className="text-muted-foreground">Hotel</dt>
+        <dt className="text-muted-foreground">{t('wizard.review.hotel')}</dt>
         <dd className="font-medium">{name.trim() || '—'}</dd>
-        <dt className="text-muted-foreground">Address</dt>
+        <dt className="text-muted-foreground">{t('wizard.review.address')}</dt>
         <dd>{address.trim() || '—'}</dd>
-        <dt className="text-muted-foreground">Rooms to import</dt>
+        <dt className="text-muted-foreground">
+          {t('wizard.review.roomsToImport')}
+        </dt>
         <dd>{roomCount}</dd>
-        <dt className="text-muted-foreground">Staff to import</dt>
+        <dt className="text-muted-foreground">
+          {t('wizard.review.staffToImport')}
+        </dt>
         <dd>{staffCount}</dd>
       </dl>
 
       <p className="text-muted-foreground text-sm">
-        All staff receive one shared temporary password (shown after creation)
-        and must set their own on first sign-in.
+        {t('wizard.review.sharedPasswordNote')}
       </p>
 
       {clientErrorCount > 0 && (
         <p className="text-destructive text-sm">
-          {clientErrorCount} row(s) still have errors. Go back and fix them —
-          the whole import is all-or-nothing.
+          {t('wizard.review.errorsRemain', { count: clientErrorCount })}
         </p>
       )}
 
       {serverErrors.length > 0 && (
         <div className="border-destructive/40 bg-destructive/5 rounded-md border p-3">
           <p className="text-destructive mb-2 text-sm font-medium">
-            The server rejected this import. Nothing was created:
+            {t('wizard.review.serverRejected')}
           </p>
           <ul className="text-destructive list-disc space-y-1 pl-5 text-sm">
             {serverErrors.map((e, i) => (
               <li key={i}>
-                {e.sheet} row {e.row + 1}: {e.message}
+                {t('wizard.review.serverRow', {
+                  sheet: e.sheet,
+                  row: e.row + 1,
+                  message: e.message,
+                })}
               </li>
             ))}
           </ul>

@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft } from 'lucide-react'
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -13,21 +15,30 @@ import { Input } from '@/components/ui/input'
 import { ApiError } from '@/lib/api/unwrap'
 import { useChangePassword } from '@/lib/queries/account'
 
-const schema = z
-  .object({
-    current_password: z.string().min(1, 'Required'),
-    new_password: z.string().min(8, 'Min 8 characters'),
-    confirm_password: z.string().min(1, 'Required'),
-  })
-  .refine((v) => v.new_password === v.confirm_password, {
-    path: ['confirm_password'],
-    message: 'Passwords do not match',
-  })
-
-type FormValues = z.infer<typeof schema>
+type FormValues = {
+  current_password: string
+  new_password: string
+  confirm_password: string
+}
 
 export function AccountPage() {
+  const { t } = useTranslation()
   const changePassword = useChangePassword()
+
+  const schema = useMemo(
+    () =>
+      z
+        .object({
+          current_password: z.string().min(1, t('account.validation.required')),
+          new_password: z.string().min(8, t('account.validation.min8')),
+          confirm_password: z.string().min(1, t('account.validation.required')),
+        })
+        .refine((v) => v.new_password === v.confirm_password, {
+          path: ['confirm_password'],
+          message: t('account.validation.passwordsNoMatch'),
+        }),
+    [t],
+  )
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -46,14 +57,16 @@ export function AccountPage() {
       },
       {
         onSuccess: () => {
-          toast.success('Password changed')
+          toast.success(t('account.passwordChanged'))
           form.reset()
         },
         onError: (e) => {
           if (e instanceof ApiError && e.status === 400) {
             form.setError('current_password', { message: e.message })
           } else {
-            toast.error(e instanceof ApiError ? e.message : 'Update failed')
+            toast.error(
+              e instanceof ApiError ? e.message : t('common.updateFailed'),
+            )
           }
         },
       },
@@ -67,18 +80,20 @@ export function AccountPage() {
         className="text-muted-foreground mb-2 inline-flex items-center gap-1 text-sm hover:underline"
       >
         <ArrowLeft className="size-4" />
-        Back
+        {t('common.back')}
       </Link>
-      <PageHeader title="Account" />
+      <PageHeader title={t('account.title')} />
       <Card>
         <CardContent>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
             className="flex flex-col gap-4"
           >
-            <h2 className="text-sm font-semibold">Change password</h2>
+            <h2 className="text-sm font-semibold">
+              {t('account.changePassword')}
+            </h2>
             <Field
-              label="Current password"
+              label={t('account.currentPassword')}
               htmlFor="current_password"
               error={form.formState.errors.current_password?.message}
             >
@@ -90,7 +105,7 @@ export function AccountPage() {
               />
             </Field>
             <Field
-              label="New password"
+              label={t('account.newPassword')}
               htmlFor="new_password"
               error={form.formState.errors.new_password?.message}
             >
@@ -102,7 +117,7 @@ export function AccountPage() {
               />
             </Field>
             <Field
-              label="Confirm new password"
+              label={t('account.confirmPassword')}
               htmlFor="confirm_password"
               error={form.formState.errors.confirm_password?.message}
             >
@@ -115,7 +130,9 @@ export function AccountPage() {
             </Field>
             <div className="flex justify-end">
               <Button type="submit" disabled={changePassword.isPending}>
-                {changePassword.isPending ? 'Saving…' : 'Change password'}
+                {changePassword.isPending
+                  ? t('common.saving')
+                  : t('account.changePassword')}
               </Button>
             </div>
           </form>

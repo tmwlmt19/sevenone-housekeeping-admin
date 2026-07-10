@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, Pencil } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -21,29 +22,34 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ROOM_STATUS_LABELS } from '@/lib/api/types'
+import type { RoomStatus, UserRole } from '@/lib/api/types'
 import { ApiError } from '@/lib/api/unwrap'
 import { useHotelStaff } from '@/lib/queries/hotel-users'
 import { useHotel, useUpdateHotel } from '@/lib/queries/hotels'
 import { useHotelRooms } from '@/lib/queries/rooms'
 
-const hotelSchema = z.object({
-  name: z.string().trim().min(1, 'Required').max(255, 'Max 255 characters'),
-  address: z.string(),
-})
-
-type HotelForm = z.infer<typeof hotelSchema>
-
-function label(role: string) {
-  return role.charAt(0).toUpperCase() + role.slice(1)
-}
+type HotelForm = { name: string; address: string }
 
 export function HotelDetailPage() {
+  const { t } = useTranslation()
   const { hotelId = '' } = useParams()
   const { data: hotel, isLoading } = useHotel(hotelId)
   const updateHotel = useUpdateHotel(hotelId)
   const { data: staff } = useHotelStaff(hotelId)
   const { data: rooms } = useHotelRooms(hotelId)
+
+  const hotelSchema = useMemo(
+    () =>
+      z.object({
+        name: z
+          .string()
+          .trim()
+          .min(1, t('hotelDetail.validation.required'))
+          .max(255, t('hotelDetail.validation.max255')),
+        address: z.string(),
+      }),
+    [t],
+  )
 
   const form = useForm<HotelForm>({
     resolver: zodResolver(hotelSchema),
@@ -61,9 +67,11 @@ export function HotelDetailPage() {
         address: values.address.trim() === '' ? null : values.address,
       },
       {
-        onSuccess: () => toast.success('Hotel updated'),
+        onSuccess: () => toast.success(t('hotelDetail.hotelUpdated')),
         onError: (e) =>
-          toast.error(e instanceof ApiError ? e.message : 'Update failed'),
+          toast.error(
+            e instanceof ApiError ? e.message : t('common.updateFailed'),
+          ),
       },
     )
   }
@@ -76,13 +84,13 @@ export function HotelDetailPage() {
           className="text-muted-foreground mb-2 inline-flex items-center gap-1 text-sm hover:underline"
         >
           <ArrowLeft className="size-4" />
-          All hotels
+          {t('hotelDetail.allHotels')}
         </Link>
-        <PageHeader title={hotel?.name ?? 'Hotel'} />
+        <PageHeader title={hotel?.name ?? t('hotelDetail.hotelFallback')} />
       </div>
 
       <section className="flex max-w-xl flex-col gap-3">
-        <h2 className="text-sm font-semibold">Details</h2>
+        <h2 className="text-sm font-semibold">{t('hotelDetail.details')}</h2>
         <Card>
           <CardContent>
             {isLoading ? (
@@ -93,18 +101,20 @@ export function HotelDetailPage() {
                 className="flex flex-col gap-4"
               >
                 <Field
-                  label="Name"
+                  label={t('hotelDetail.name')}
                   htmlFor="name"
                   error={form.formState.errors.name?.message}
                 >
                   <Input id="name" {...form.register('name')} />
                 </Field>
-                <Field label="Address" htmlFor="address">
+                <Field label={t('hotelDetail.address')} htmlFor="address">
                   <Input id="address" {...form.register('address')} />
                 </Field>
                 <div className="flex justify-end">
                   <Button type="submit" disabled={updateHotel.isPending}>
-                    {updateHotel.isPending ? 'Saving…' : 'Save changes'}
+                    {updateHotel.isPending
+                      ? t('common.saving')
+                      : t('hotelDetail.saveChanges')}
                   </Button>
                 </div>
               </form>
@@ -115,19 +125,21 @@ export function HotelDetailPage() {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Staff</h2>
+          <h2 className="text-sm font-semibold">{t('hotelDetail.staff')}</h2>
           <span className="text-muted-foreground text-xs">
-            Adds &amp; removals come from managers via Requests
+            {t('hotelDetail.managedViaRequests')}
           </span>
         </div>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="w-24 text-right">Actions</TableHead>
+                <TableHead>{t('hotelDetail.name')}</TableHead>
+                <TableHead>{t('hotelDetail.email')}</TableHead>
+                <TableHead>{t('hotelDetail.role')}</TableHead>
+                <TableHead className="w-24 text-right">
+                  {t('common.actions')}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -137,7 +149,7 @@ export function HotelDetailPage() {
                     colSpan={4}
                     className="text-muted-foreground py-8 text-center"
                   >
-                    No staff yet.
+                    {t('hotelDetail.noStaff')}
                   </TableCell>
                 </TableRow>
               )}
@@ -146,14 +158,16 @@ export function HotelDetailPage() {
                   <TableCell className="font-medium">{member.name}</TableCell>
                   <TableCell>{member.email}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{label(member.role)}</Badge>
+                    <Badge variant="secondary">
+                      {t(`enums.role.${member.role as UserRole}`)}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
                       asChild
                       variant="ghost"
                       size="icon"
-                      aria-label="Edit"
+                      aria-label={t('common.edit')}
                     >
                       <Link to={`/hotels/${hotelId}/staff/${member.id}`}>
                         <Pencil className="size-4" />
@@ -169,20 +183,22 @@ export function HotelDetailPage() {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Rooms</h2>
+          <h2 className="text-sm font-semibold">{t('hotelDetail.rooms')}</h2>
           <span className="text-muted-foreground text-xs">
-            Adds &amp; removals come from managers via Requests
+            {t('hotelDetail.managedViaRequests')}
           </span>
         </div>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Room</TableHead>
-                <TableHead>Floor</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-24 text-right">Actions</TableHead>
+                <TableHead>{t('hotelDetail.room')}</TableHead>
+                <TableHead>{t('hotelDetail.floor')}</TableHead>
+                <TableHead>{t('hotelDetail.type')}</TableHead>
+                <TableHead>{t('hotelDetail.status')}</TableHead>
+                <TableHead className="w-24 text-right">
+                  {t('common.actions')}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -192,7 +208,7 @@ export function HotelDetailPage() {
                     colSpan={5}
                     className="text-muted-foreground py-8 text-center"
                   >
-                    No rooms yet.
+                    {t('hotelDetail.noRooms')}
                   </TableCell>
                 </TableRow>
               )}
@@ -205,7 +221,7 @@ export function HotelDetailPage() {
                   <TableCell>{room.room_type ?? '—'}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {ROOM_STATUS_LABELS[room.status]}
+                      {t(`enums.roomStatus.${room.status as RoomStatus}`)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -213,7 +229,7 @@ export function HotelDetailPage() {
                       asChild
                       variant="ghost"
                       size="icon"
-                      aria-label="Edit"
+                      aria-label={t('common.edit')}
                     >
                       <Link to={`/hotels/${hotelId}/rooms/${room.id}`}>
                         <Pencil className="size-4" />

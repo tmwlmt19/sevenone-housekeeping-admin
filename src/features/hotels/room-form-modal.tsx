@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -16,33 +17,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  ROOM_STATUS_LABELS,
-  ROOM_STATUSES,
-  type RoomUpdate,
-} from '@/lib/api/types'
+import { ROOM_STATUSES, type RoomUpdate } from '@/lib/api/types'
 import { ApiError } from '@/lib/api/unwrap'
 import { useHotelRooms, useUpdateRoom } from '@/lib/queries/rooms'
 
-// Editing an existing room is still an admin-direct action. Adding and removing
-// rooms go through the manager → admin Requests queue instead.
-const schema = z.object({
-  room_number: z
-    .string()
-    .trim()
-    .min(1, 'Required')
-    .max(50, 'Max 50 characters'),
-  floor: z
-    .string()
-    .trim()
-    .refine((v) => v === '' || /^-?\d+$/.test(v), 'Whole number'),
-  room_type: z.string().trim().max(20, 'Max 20 characters'),
-  status: z.enum(['clean', 'dirty', 'in_progress', 'out_of_service']),
-})
-
-type FormValues = z.infer<typeof schema>
+type FormValues = {
+  room_number: string
+  floor: string
+  room_type: string
+  status: 'clean' | 'dirty' | 'in_progress' | 'out_of_service'
+}
 
 export function RoomFormModal() {
+  const { t } = useTranslation()
   const { hotelId = '', roomId = '' } = useParams()
   const navigate = useNavigate()
   const backTo = `/hotels/${hotelId}`
@@ -51,6 +38,29 @@ export function RoomFormModal() {
   const room = rooms?.find((r) => r.id === roomId)
 
   const updateRoom = useUpdateRoom(hotelId)
+
+  // Editing an existing room is still an admin-direct action. Adding and
+  // removing rooms go through the manager → admin Requests queue instead.
+  const schema = useMemo(
+    () =>
+      z.object({
+        room_number: z
+          .string()
+          .trim()
+          .min(1, t('roomForm.validation.required'))
+          .max(50, t('roomForm.validation.max50')),
+        floor: z
+          .string()
+          .trim()
+          .refine(
+            (v) => v === '' || /^-?\d+$/.test(v),
+            t('roomForm.validation.wholeNumber'),
+          ),
+        room_type: z.string().trim().max(20, t('roomForm.validation.max20')),
+        status: z.enum(['clean', 'dirty', 'in_progress', 'out_of_service']),
+      }),
+    [t],
+  )
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -75,9 +85,9 @@ export function RoomFormModal() {
 
   if (rooms && !room) {
     return (
-      <RouteModal title="Room not found" backTo={backTo}>
+      <RouteModal title={t('roomForm.notFoundTitle')} backTo={backTo}>
         <p className="text-muted-foreground text-sm">
-          This room no longer exists.
+          {t('roomForm.notFoundBody')}
         </p>
       </RouteModal>
     )
@@ -94,7 +104,7 @@ export function RoomFormModal() {
       { roomId, body },
       {
         onSuccess: () => {
-          toast.success('Room updated')
+          toast.success(t('roomForm.roomUpdated'))
           navigate(backTo)
         },
         onError: (e: unknown) => {
@@ -102,7 +112,9 @@ export function RoomFormModal() {
             form.setError('room_number', { message: e.message })
           } else {
             toast.error(
-              e instanceof ApiError ? e.message : 'Something went wrong',
+              e instanceof ApiError
+                ? e.message
+                : t('common.somethingWentWrong'),
             )
           }
         },
@@ -111,42 +123,45 @@ export function RoomFormModal() {
   }
 
   return (
-    <RouteModal title="Edit room" backTo={backTo}>
+    <RouteModal title={t('roomForm.editTitle')} backTo={backTo}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-4"
       >
         <Field
-          label="Room number"
+          label={t('roomForm.roomNumber')}
           htmlFor="room_number"
           error={form.formState.errors.room_number?.message}
         >
           <Input id="room_number" {...form.register('room_number')} />
         </Field>
         <Field
-          label="Floor"
+          label={t('roomForm.floor')}
           htmlFor="floor"
           error={form.formState.errors.floor?.message}
         >
           <Input
             id="floor"
             inputMode="numeric"
-            placeholder="Optional"
+            placeholder={t('roomForm.floorPlaceholder')}
             {...form.register('floor')}
           />
         </Field>
         <Field
-          label="Room type"
+          label={t('roomForm.roomType')}
           htmlFor="room_type"
           error={form.formState.errors.room_type?.message}
         >
           <Input
             id="room_type"
-            placeholder="Optional (e.g. STD, DLX)"
+            placeholder={t('roomForm.roomTypePlaceholder')}
             {...form.register('room_type')}
           />
         </Field>
-        <Field label="Status" error={form.formState.errors.status?.message}>
+        <Field
+          label={t('roomForm.status')}
+          error={form.formState.errors.status?.message}
+        >
           <Controller
             control={form.control}
             name="status"
@@ -158,7 +173,7 @@ export function RoomFormModal() {
                 <SelectContent>
                   {ROOM_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {ROOM_STATUS_LABELS[s]}
+                      {t(`enums.roomStatus.${s}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -172,10 +187,10 @@ export function RoomFormModal() {
             variant="outline"
             onClick={() => navigate(backTo)}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={updateRoom.isPending}>
-            {updateRoom.isPending ? 'Saving…' : 'Save'}
+            {updateRoom.isPending ? t('common.saving') : t('common.save')}
           </Button>
         </div>
       </form>

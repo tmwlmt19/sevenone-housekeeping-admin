@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -20,21 +21,14 @@ import { HOTEL_ROLES, type StaffUpdate } from '@/lib/api/types'
 import { ApiError } from '@/lib/api/unwrap'
 import { useHotelStaff, useUpdateHotelUser } from '@/lib/queries/hotel-users'
 
-function label(role: string) {
-  return role.charAt(0).toUpperCase() + role.slice(1)
+type FormValues = {
+  email: string
+  name: string
+  role: 'manager' | 'housekeeper'
 }
 
-// Editing an existing staff member is still an admin-direct action. Adding and
-// removing staff go through the manager → admin Requests queue instead.
-const schema = z.object({
-  email: z.string().trim().email('Enter a valid email'),
-  name: z.string().trim().min(1, 'Required').max(255, 'Max 255 characters'),
-  role: z.enum(['manager', 'housekeeper']),
-})
-
-type FormValues = z.infer<typeof schema>
-
 export function HotelUserFormModal() {
+  const { t } = useTranslation()
   const { hotelId = '', userId = '' } = useParams()
   const navigate = useNavigate()
   const backTo = `/hotels/${hotelId}`
@@ -43,6 +37,25 @@ export function HotelUserFormModal() {
   const member = staff?.find((m) => m.id === userId)
 
   const updateUser = useUpdateHotelUser(hotelId)
+
+  // Editing an existing staff member is still an admin-direct action. Adding and
+  // removing staff go through the manager → admin Requests queue instead.
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z
+          .string()
+          .trim()
+          .email(t('hotelUserForm.validation.validEmail')),
+        name: z
+          .string()
+          .trim()
+          .min(1, t('hotelUserForm.validation.required'))
+          .max(255, t('hotelUserForm.validation.max255')),
+        role: z.enum(['manager', 'housekeeper']),
+      }),
+    [t],
+  )
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -61,9 +74,9 @@ export function HotelUserFormModal() {
 
   if (staff && !member) {
     return (
-      <RouteModal title="Staff member not found" backTo={backTo}>
+      <RouteModal title={t('hotelUserForm.notFoundTitle')} backTo={backTo}>
         <p className="text-muted-foreground text-sm">
-          This person no longer exists.
+          {t('hotelUserForm.notFoundBody')}
         </p>
       </RouteModal>
     )
@@ -79,7 +92,7 @@ export function HotelUserFormModal() {
       { userId, body },
       {
         onSuccess: () => {
-          toast.success('Staff updated')
+          toast.success(t('hotelUserForm.staffUpdated'))
           navigate(backTo)
         },
         onError: (e: unknown) => {
@@ -87,7 +100,9 @@ export function HotelUserFormModal() {
             form.setError('email', { message: e.message })
           } else {
             toast.error(
-              e instanceof ApiError ? e.message : 'Something went wrong',
+              e instanceof ApiError
+                ? e.message
+                : t('common.somethingWentWrong'),
             )
           }
         },
@@ -96,26 +111,29 @@ export function HotelUserFormModal() {
   }
 
   return (
-    <RouteModal title="Edit staff member" backTo={backTo}>
+    <RouteModal title={t('hotelUserForm.editTitle')} backTo={backTo}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-4"
       >
         <Field
-          label="Name"
+          label={t('hotelUserForm.name')}
           htmlFor="name"
           error={form.formState.errors.name?.message}
         >
           <Input id="name" {...form.register('name')} />
         </Field>
         <Field
-          label="Email"
+          label={t('hotelUserForm.email')}
           htmlFor="email"
           error={form.formState.errors.email?.message}
         >
           <Input id="email" type="email" {...form.register('email')} />
         </Field>
-        <Field label="Role" error={form.formState.errors.role?.message}>
+        <Field
+          label={t('hotelUserForm.role')}
+          error={form.formState.errors.role?.message}
+        >
           <Controller
             control={form.control}
             name="role"
@@ -127,7 +145,7 @@ export function HotelUserFormModal() {
                 <SelectContent>
                   {HOTEL_ROLES.map((r) => (
                     <SelectItem key={r} value={r}>
-                      {label(r)}
+                      {t(`enums.role.${r}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -141,10 +159,10 @@ export function HotelUserFormModal() {
             variant="outline"
             onClick={() => navigate(backTo)}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={updateUser.isPending}>
-            {updateUser.isPending ? 'Saving…' : 'Save'}
+            {updateUser.isPending ? t('common.saving') : t('common.save')}
           </Button>
         </div>
       </form>

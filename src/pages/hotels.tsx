@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 
 import { PageHeader } from '@/components/page-header'
@@ -16,19 +17,20 @@ import { ApiError } from '@/lib/api/unwrap'
 import { useHotels } from '@/lib/queries/hotels'
 
 export function HotelsPage() {
+  const { t } = useTranslation()
   const { data: hotels, isLoading, isError, error } = useHotels()
   const navigate = useNavigate()
 
   return (
     <div>
       <PageHeader
-        title="Hotels"
-        description="All hotels on the platform."
+        title={t('hotels.title')}
+        description={t('hotels.subtitle')}
         action={
           <Button asChild>
             <Link to="/hotels/new">
               <Plus className="size-4" />
-              New hotel
+              {t('hotels.newHotel')}
             </Link>
           </Button>
         }
@@ -38,8 +40,8 @@ export function HotelsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Address</TableHead>
+              <TableHead>{t('hotels.name')}</TableHead>
+              <TableHead>{t('hotels.address')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,7 +59,7 @@ export function HotelsPage() {
                 <TableCell colSpan={2} className="text-destructive">
                   {error instanceof ApiError
                     ? error.message
-                    : 'Failed to load hotels'}
+                    : t('hotels.failedToLoad')}
                 </TableCell>
               </TableRow>
             )}
@@ -68,7 +70,7 @@ export function HotelsPage() {
                   colSpan={2}
                   className="text-muted-foreground py-8 text-center"
                 >
-                  No hotels yet. Create your first hotel to get started.
+                  {t('hotels.empty')}
                 </TableCell>
               </TableRow>
             )}

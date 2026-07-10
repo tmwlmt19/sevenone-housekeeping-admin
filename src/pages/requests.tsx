@@ -1,5 +1,6 @@
 import { Check, X } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { PageHeader } from '@/components/page-header'
@@ -20,6 +21,7 @@ import type {
   AccessRequest,
   RoomAddPayload,
   StaffAddPayload,
+  UserRole,
 } from '@/lib/api/types'
 import { ApiError } from '@/lib/api/unwrap'
 import {
@@ -31,13 +33,10 @@ import { useHotels } from '@/lib/queries/hotels'
 import { useHotelRooms } from '@/lib/queries/rooms'
 import { useHotelStaff } from '@/lib/queries/hotel-users'
 
-function titleCase(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1)
-}
-
 /** A human summary of what the request will do. Resolves the target's name for
  * removes by reading the hotel's staff/rooms (React Query dedupes across rows). */
 function useRequestSummary(req: AccessRequest): string {
+  const { t } = useTranslation()
   const isStaffRemove = req.resource === 'staff' && req.kind === 'remove'
   const isRoomRemove = req.resource === 'room' && req.kind === 'remove'
   const { data: staff } = useHotelStaff(isStaffRemove ? req.hotel_id : '')
@@ -46,20 +45,26 @@ function useRequestSummary(req: AccessRequest): string {
   if (req.kind === 'add') {
     if (req.resource === 'staff') {
       const p = req.payload as unknown as StaffAddPayload | null
-      return p ? `${p.name} · ${p.email} · ${titleCase(p.role)}` : 'New staff'
+      return p
+        ? `${p.name} · ${p.email} · ${t(`enums.role.${p.role as UserRole}`)}`
+        : t('requests.newStaff')
     }
     const p = req.payload as unknown as RoomAddPayload | null
     return p
-      ? `Room ${p.room_number}${p.room_type ? ` · ${p.room_type}` : ''}`
-      : 'New room'
+      ? `${t('requests.room', { number: p.room_number })}${p.room_type ? ` · ${p.room_type}` : ''}`
+      : t('requests.newRoom')
   }
   // remove
   if (isStaffRemove) {
     const target = staff?.find((s) => s.id === req.target_id)
-    return target ? `${target.name} · ${target.email}` : 'Staff member'
+    return target
+      ? `${target.name} · ${target.email}`
+      : t('requests.staffMember')
   }
   const target = rooms?.find((r) => r.id === req.target_id)
-  return target ? `Room ${target.room_number}` : 'Room'
+  return target
+    ? t('requests.room', { number: target.room_number })
+    : t('requests.roomWord')
 }
 
 function RequestCard({
@@ -71,6 +76,7 @@ function RequestCard({
   hotelName: string
   onReject: (req: AccessRequest) => void
 }) {
+  const { t } = useTranslation()
   const summary = useRequestSummary(req)
   const approve = useApproveRequest()
 
@@ -79,17 +85,21 @@ function RequestCard({
       onSuccess: (decision) => {
         if (decision.temporary_password) {
           // Surfaced once; the admin hands it to the new user.
-          toast.success('Staff added', {
-            description: `Temporary password: ${decision.temporary_password}`,
+          toast.success(t('requests.staffAdded'), {
+            description: t('requests.tempPasswordDesc', {
+              password: decision.temporary_password,
+            }),
             duration: Infinity,
             closeButton: true,
           })
         } else {
-          toast.success('Request approved')
+          toast.success(t('requests.requestApproved'))
         }
       },
       onError: (e) =>
-        toast.error(e instanceof ApiError ? e.message : 'Approve failed'),
+        toast.error(
+          e instanceof ApiError ? e.message : t('requests.approveFailed'),
+        ),
     })
   }
 
@@ -101,7 +111,10 @@ function RequestCard({
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <Badge variant={kindVariant}>
-              {titleCase(req.kind)} {req.resource}
+              {t('requests.kindResource', {
+                kind: t(`enums.requestKind.${req.kind}`),
+                resource: t(`enums.resource.${req.resource}`),
+              })}
             </Badge>
             <span className="text-muted-foreground text-sm">{hotelName}</span>
           </div>
@@ -118,11 +131,17 @@ function RequestCard({
             disabled={approve.isPending}
           >
             <X className="size-4" />
-            Reject
+            {t('requests.reject')}
           </Button>
-          <Button size="sm" onClick={handleApprove} disabled={approve.isPending}>
+          <Button
+            size="sm"
+            onClick={handleApprove}
+            disabled={approve.isPending}
+          >
             <Check className="size-4" />
-            {approve.isPending ? 'Approving…' : 'Approve'}
+            {approve.isPending
+              ? t('requests.approving')
+              : t('requests.approve')}
           </Button>
         </div>
       </CardContent>
@@ -131,6 +150,7 @@ function RequestCard({
 }
 
 export function RequestsPage() {
+  const { t } = useTranslation()
   const { data: requests, isLoading } = useAccessRequests('pending')
   const { data: hotels } = useHotels()
   const reject = useRejectRequest()
@@ -138,7 +158,7 @@ export function RequestsPage() {
   const [note, setNote] = useState('')
 
   const hotelName = (id: string) =>
-    hotels?.find((h) => h.id === id)?.name ?? 'Unknown hotel'
+    hotels?.find((h) => h.id === id)?.name ?? t('requests.unknownHotel')
 
   function submitReject() {
     if (!rejecting) return
@@ -146,26 +166,28 @@ export function RequestsPage() {
       { requestId: rejecting.id, decisionNote: note.trim() },
       {
         onSuccess: () => {
-          toast.success('Request rejected')
+          toast.success(t('requests.requestRejected'))
           setRejecting(null)
           setNote('')
         },
         onError: (e) =>
-          toast.error(e instanceof ApiError ? e.message : 'Reject failed'),
+          toast.error(
+            e instanceof ApiError ? e.message : t('requests.rejectFailed'),
+          ),
       },
     )
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Requests" />
+      <PageHeader title={t('requests.title')} />
 
       {isLoading ? (
         <Skeleton className="h-24 w-full" />
       ) : !requests || requests.length === 0 ? (
         <Card>
           <CardContent className="text-muted-foreground py-12 text-center">
-            No pending requests.
+            {t('requests.noPending')}
           </CardContent>
         </Card>
       ) : (
@@ -192,14 +214,13 @@ export function RequestsPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject request</DialogTitle>
+            <DialogTitle>{t('requests.rejectTitle')}</DialogTitle>
             <DialogDescription>
-              Optionally tell the manager why. This closes the request without
-              making any change.
+              {t('requests.rejectDescription')}
             </DialogDescription>
           </DialogHeader>
           <Textarea
-            placeholder="Reason (optional)"
+            placeholder={t('requests.reasonPlaceholder')}
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
@@ -209,14 +230,16 @@ export function RequestsPage() {
               onClick={() => setRejecting(null)}
               disabled={reject.isPending}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={submitReject}
               disabled={reject.isPending}
             >
-              {reject.isPending ? 'Rejecting…' : 'Reject'}
+              {reject.isPending
+                ? t('requests.rejecting')
+                : t('requests.reject')}
             </Button>
           </DialogFooter>
         </DialogContent>

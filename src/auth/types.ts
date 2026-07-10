@@ -1,3 +1,5 @@
+import type { Language, Theme } from '@/lib/api/types'
+
 // Mirrors the backend UserRole enum (admin | manager | housekeeper).
 export type Role = 'admin' | 'manager' | 'housekeeper'
 
@@ -6,4 +8,6 @@ export interface AuthUser {
   // Null for platform/service admins, who belong to no hotel.
   hotelId: string | null
   role: Role
+  theme: Theme
+  preferredLanguage: Language
 }
