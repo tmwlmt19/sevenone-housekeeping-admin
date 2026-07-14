@@ -42,6 +42,7 @@ export const en = {
     account: 'Account',
     logout: 'Logout',
     toggleMenu: 'Toggle menu',
+    closeMenu: 'Close menu',
   },
   account: {
     title: 'Account',

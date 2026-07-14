@@ -1,4 +1,4 @@
-import { Building2, Inbox, LogOut, Menu, UserCircle } from 'lucide-react'
+import { Building2, Inbox, LogOut, Menu, UserCircle, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, NavLink, Outlet } from 'react-router-dom'
@@ -51,8 +51,17 @@ export function AppShell() {
             : '-translate-x-full md:w-0 md:overflow-hidden md:border-r-0',
         )}
       >
-        <div className="px-5 py-4 text-lg font-semibold">
-          {t('nav.adminTitle')}
+        <div className="flex items-center justify-between px-5 py-4">
+          <span className="text-lg font-semibold">{t('nav.adminTitle')}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            aria-label={t('nav.closeMenu')}
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X className="size-5" />
+          </Button>
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-3">
           <NavLink to="/hotels" className={navLinkClass} onClick={closeOnMobile}>

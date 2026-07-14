@@ -48,6 +48,7 @@ export const es: Catalog = {
     account: 'Cuenta',
     logout: 'Cerrar sesión',
     toggleMenu: 'Alternar menú',
+    closeMenu: 'Cerrar menú',
   },
   account: {
     title: 'Cuenta',
