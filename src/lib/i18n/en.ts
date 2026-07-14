@@ -41,6 +41,7 @@ export const en = {
     requests: 'Requests',
     account: 'Account',
     logout: 'Logout',
+    toggleMenu: 'Toggle menu',
   },
   account: {
     title: 'Account',

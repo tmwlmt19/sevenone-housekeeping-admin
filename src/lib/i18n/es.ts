@@ -47,6 +47,7 @@ export const es: Catalog = {
     requests: 'Solicitudes',
     account: 'Cuenta',
     logout: 'Cerrar sesión',
+    toggleMenu: 'Alternar menú',
   },
   account: {
     title: 'Cuenta',
