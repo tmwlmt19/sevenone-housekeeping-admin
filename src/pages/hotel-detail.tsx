@@ -7,6 +7,7 @@ import { Link, Outlet, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { ApiKeysSection } from '@/features/hotels/api-keys-section'
 import { Field } from '@/components/form/field'
 import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -242,6 +243,8 @@ export function HotelDetailPage() {
           </Table>
         </div>
       </section>
+
+      <ApiKeysSection hotelId={hotelId} />
 
       {/* Route-aware edit staff & room modals render here. */}
       <Outlet />
