@@ -11,9 +11,11 @@ export type Staff = Schemas['UserRead']
 export type StaffUpdate = Schemas['UserUpdate']
 export type UserRole = Schemas['UserRole']
 
-// UI preferences (persisted per-user).
-export type Theme = Schemas['Theme']
-export type Language = Schemas['Language']
+// UI preferences (persisted per-user). The backend inlines these enums on
+// UserRead rather than emitting named component schemas, so derive them from the
+// field types (keeps `pnpm gen:api` output stable).
+export type Theme = NonNullable<Schemas['UserRead']['theme']>
+export type Language = NonNullable<Schemas['UserRead']['preferred_language']>
 
 export type Room = Schemas['RoomRead']
 export type RoomCreate = Schemas['RoomCreate']
@@ -22,6 +24,11 @@ export type RoomStatus = Schemas['RoomStatus']
 export type UserProvision = Schemas['UserProvision']
 export type HotelProvisionRequest = Schemas['HotelProvisionRequest']
 export type HotelProvisionResponse = Schemas['HotelProvisionResponse']
+
+// Per-hotel PMS API keys.
+export type ApiKey = Schemas['ApiKeyRead']
+export type ApiKeyCreate = Schemas['ApiKeyCreate']
+export type ApiKeyCreateResponse = Schemas['ApiKeyCreateResponse']
 
 export const ROOM_STATUSES: RoomStatus[] = [
   'clean',
