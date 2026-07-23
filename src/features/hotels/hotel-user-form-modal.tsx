@@ -24,7 +24,7 @@ import { useHotelStaff, useUpdateHotelUser } from '@/lib/queries/hotel-users'
 type FormValues = {
   email: string
   name: string
-  role: 'manager' | 'housekeeper'
+  role: 'manager' | 'front_desk' | 'housekeeper'
 }
 
 export function HotelUserFormModal() {
@@ -52,7 +52,7 @@ export function HotelUserFormModal() {
           .trim()
           .min(1, t('hotelUserForm.validation.required'))
           .max(255, t('hotelUserForm.validation.max255')),
-        role: z.enum(['manager', 'housekeeper']),
+        role: z.enum(['manager', 'front_desk', 'housekeeper']),
       }),
     [t],
   )
@@ -67,7 +67,9 @@ export function HotelUserFormModal() {
       form.reset({
         email: member.email,
         name: member.name,
-        role: member.role === 'housekeeper' ? 'housekeeper' : 'manager',
+        // Preserve the member's hotel role; an admin (not editable here) falls
+        // back to manager.
+        role: member.role === 'admin' ? 'manager' : member.role,
       })
     }
   }, [member, form])

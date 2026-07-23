@@ -90,8 +90,9 @@ export function ProvisionWizard() {
         key: 'role',
         label: t('wizard.import.columns.role'),
         type: 'select',
-        options: ['manager', 'housekeeper'],
-        optionLabel: (v) => t(`enums.role.${v as 'manager' | 'housekeeper'}`),
+        options: ['manager', 'front_desk', 'housekeeper'],
+        optionLabel: (v) =>
+          t(`enums.role.${v as 'manager' | 'front_desk' | 'housekeeper'}`),
       },
     ],
     [t],
