@@ -1,7 +1,7 @@
 import type { Language, Theme } from '@/lib/api/types'
 
 // Mirrors the backend UserRole enum (admin | manager | housekeeper).
-export type Role = 'admin' | 'manager' | 'housekeeper'
+export type Role = 'admin' | 'manager' | 'front_desk' | 'housekeeper'
 
 export interface AuthUser {
   id: string

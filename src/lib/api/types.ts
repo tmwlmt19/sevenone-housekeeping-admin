@@ -38,7 +38,7 @@ export const ROOM_STATUS_LABELS: Record<RoomStatus, string> = {
 }
 
 // Hotel-staff roles the admin can assign (admin is a platform role, not a hotel one).
-export const HOTEL_ROLES: UserRole[] = ['manager', 'housekeeper']
+export const HOTEL_ROLES: UserRole[] = ['manager', 'front_desk', 'housekeeper']
 
 // --- Access requests (manager → admin approval queue) ---
 export type AccessRequest = Schemas['AccessRequestRead']

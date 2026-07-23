@@ -14,7 +14,7 @@ export interface RoomDraft {
 export interface StaffDraft {
   email: string
   name: string
-  role: 'manager' | 'housekeeper'
+  role: 'manager' | 'front_desk' | 'housekeeper'
 }
 
 export const EMPTY_ROOM: RoomDraft = {
@@ -83,7 +83,8 @@ export async function parseStaffCsv(file: File): Promise<StaffDraft[]> {
     return {
       email: pick(row, ['email', 'e_mail']),
       name: pick(row, ['name', 'full_name']),
-      role: role === 'manager' ? 'manager' : 'housekeeper',
+      role:
+        role === 'manager' || role === 'front_desk' ? role : 'housekeeper',
     }
   })
 }

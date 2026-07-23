@@ -820,7 +820,7 @@ export interface components {
          * UserRole
          * @enum {string}
          */
-        UserRole: "admin" | "manager" | "housekeeper";
+        UserRole: "admin" | "manager" | "front_desk" | "housekeeper";
         /**
          * Theme
          * @enum {string}

@@ -67,14 +67,23 @@ function useRequestSummary(req: AccessRequest): string {
     : t('requests.roomWord')
 }
 
+/** Details for the post-approval confirmation popup shown when a staff account
+ * is created (welcome email sent + the temp password as a fallback). */
+export interface StaffAddedConfirmation {
+  email: string
+  password: string
+}
+
 function RequestCard({
   req,
   hotelName,
   onReject,
+  onStaffAdded,
 }: {
   req: AccessRequest
   hotelName: string
   onReject: (req: AccessRequest) => void
+  onStaffAdded: (confirmation: StaffAddedConfirmation) => void
 }) {
   const { t } = useTranslation()
   const summary = useRequestSummary(req)
@@ -84,13 +93,12 @@ function RequestCard({
     approve.mutate(req.id, {
       onSuccess: (decision) => {
         if (decision.temporary_password) {
-          // Surfaced once; the admin hands it to the new user.
-          toast.success(t('requests.staffAdded'), {
-            description: t('requests.tempPasswordDesc', {
-              password: decision.temporary_password,
-            }),
-            duration: Infinity,
-            closeButton: true,
+          // A staff account was created: confirm success, note the welcome
+          // email, and surface the temp password once as a fallback.
+          const staff = req.payload as unknown as StaffAddPayload | null
+          onStaffAdded({
+            email: staff?.email ?? '',
+            password: decision.temporary_password,
           })
         } else {
           toast.success(t('requests.requestApproved'))
@@ -156,6 +164,9 @@ export function RequestsPage() {
   const reject = useRejectRequest()
   const [rejecting, setRejecting] = useState<AccessRequest | null>(null)
   const [note, setNote] = useState('')
+  const [staffAdded, setStaffAdded] = useState<StaffAddedConfirmation | null>(
+    null,
+  )
 
   const hotelName = (id: string) =>
     hotels?.find((h) => h.id === id)?.name ?? t('requests.unknownHotel')
@@ -198,6 +209,7 @@ export function RequestsPage() {
               req={req}
               hotelName={hotelName(req.hotel_id)}
               onReject={setRejecting}
+              onStaffAdded={setStaffAdded}
             />
           ))}
         </div>
@@ -240,6 +252,38 @@ export function RequestsPage() {
               {reject.isPending
                 ? t('requests.rejecting')
                 : t('requests.reject')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={staffAdded !== null}
+        onOpenChange={(open) => {
+          if (!open) setStaffAdded(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('requests.staffAddedTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('requests.welcomeEmailSent', { email: staffAdded?.email })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-muted flex flex-col gap-1 rounded-md p-3 text-sm">
+            <span className="text-muted-foreground">
+              {t('requests.tempPasswordLabel')}
+            </span>
+            <code className="text-base font-medium">
+              {staffAdded?.password}
+            </code>
+            <span className="text-muted-foreground mt-1 text-xs">
+              {t('requests.tempPasswordFallback')}
+            </span>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setStaffAdded(null)}>
+              {t('requests.done')}
             </Button>
           </DialogFooter>
         </DialogContent>

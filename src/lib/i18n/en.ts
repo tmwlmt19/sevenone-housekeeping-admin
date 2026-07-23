@@ -20,7 +20,12 @@ export const en = {
       in_progress: 'In progress',
       out_of_service: 'Out of service',
     },
-    role: { admin: 'Admin', manager: 'Manager', housekeeper: 'Housekeeper' },
+    role: {
+      admin: 'Admin',
+      manager: 'Manager',
+      front_desk: 'Front desk',
+      housekeeper: 'Housekeeper',
+    },
     requestKind: { add: 'Add', remove: 'Remove' },
     resource: { staff: 'staff', room: 'room' },
   },
@@ -103,6 +108,13 @@ export const en = {
     approving: 'Approving…',
     staffAdded: 'Staff added',
     tempPasswordDesc: 'Temporary password: {{password}}',
+    staffAddedTitle: 'Staff member added',
+    welcomeEmailSent:
+      'A welcome email with sign-in instructions was sent to {{email}}.',
+    tempPasswordLabel: 'Temporary password',
+    tempPasswordFallback:
+      "Share this directly only if they don't receive the email.",
+    done: 'Done',
     requestApproved: 'Request approved',
     approveFailed: 'Approve failed',
     requestRejected: 'Request rejected',

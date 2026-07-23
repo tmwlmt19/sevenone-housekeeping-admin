@@ -25,6 +25,7 @@ export const es: Catalog = {
     role: {
       admin: 'Administrador',
       manager: 'Gerente',
+      front_desk: 'Recepción',
       housekeeper: 'Camarista',
     },
     requestKind: { add: 'Agregar', remove: 'Quitar' },
@@ -110,6 +111,13 @@ export const es: Catalog = {
     approving: 'Aprobando…',
     staffAdded: 'Personal agregado',
     tempPasswordDesc: 'Contraseña temporal: {{password}}',
+    staffAddedTitle: 'Miembro del personal agregado',
+    welcomeEmailSent:
+      'Se envió un correo de bienvenida con instrucciones de inicio de sesión a {{email}}.',
+    tempPasswordLabel: 'Contraseña temporal',
+    tempPasswordFallback:
+      'Compártela directamente solo si no reciben el correo.',
+    done: 'Listo',
     requestApproved: 'Solicitud aprobada',
     approveFailed: 'Error al aprobar',
     requestRejected: 'Solicitud rechazada',
