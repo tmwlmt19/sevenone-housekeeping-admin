@@ -25,6 +25,7 @@ export const es: Catalog = {
     role: {
       admin: 'Administrador',
       manager: 'Gerente',
+      front_desk: 'Recepción',
       housekeeper: 'Camarista',
     },
     requestKind: { add: 'Agregar', remove: 'Quitar' },
@@ -94,6 +95,34 @@ export const es: Catalog = {
     noRooms: 'Aún no hay habitaciones.',
     validation: { required: 'Obligatorio', max255: 'Máximo 255 caracteres' },
   },
+  apiKeys: {
+    title: 'Claves API del PMS',
+    description:
+      'Las claves permiten que un sistema de gestión hotelera (PMS) externo envíe datos de habitaciones sucias de este hotel. Trátalas como contraseñas.',
+    generate: 'Generar clave',
+    generateTitle: 'Generar una clave API',
+    generateDesc: 'Ponle un nombre a la clave para distinguirla más adelante.',
+    name: 'Nombre',
+    namePlaceholder: 'p. ej. Opera PMS',
+    key: 'Clave',
+    lastUsed: 'Último uso',
+    status: 'Estado',
+    none: 'Aún no hay claves API.',
+    activeTag: 'Activa',
+    revokedTag: 'Revocada',
+    revoke: 'Revocar',
+    revokeTitle: '¿Revocar esta clave?',
+    revokeDesc:
+      'La clave «{{name}}» dejará de funcionar de inmediato. Cualquier PMS que la use deberá cambiar a una nueva clave. Esto no se puede deshacer.',
+    revoked: 'Clave API revocada',
+    createdTitle: 'Copia tu clave API ahora',
+    createdDesc:
+      'Esta es la única vez que se muestra la clave completa. Guárdala en un lugar seguro: no podrás verla de nuevo.',
+    copy: 'Copiar',
+    copied: 'Clave API copiada',
+    cantCopy: 'No se pudo copiar al portapapeles',
+    done: 'Listo',
+  },
   requests: {
     title: 'Solicitudes',
     noPending: 'No hay solicitudes pendientes.',
@@ -110,6 +139,13 @@ export const es: Catalog = {
     approving: 'Aprobando…',
     staffAdded: 'Personal agregado',
     tempPasswordDesc: 'Contraseña temporal: {{password}}',
+    staffAddedTitle: 'Miembro del personal agregado',
+    welcomeEmailSent:
+      'Se envió un correo de bienvenida con instrucciones de inicio de sesión a {{email}}.',
+    tempPasswordLabel: 'Contraseña temporal',
+    tempPasswordFallback:
+      'Compártela directamente solo si no reciben el correo.',
+    done: 'Listo',
     requestApproved: 'Solicitud aprobada',
     approveFailed: 'Error al aprobar',
     requestRejected: 'Solicitud rechazada',
